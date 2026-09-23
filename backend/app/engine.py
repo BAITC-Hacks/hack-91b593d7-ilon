@@ -12,7 +12,7 @@ from app.schemas import (
     Simulation,
 )
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "city.v1.json"
+DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "city.v1.json"
 
 
 class ScenarioError(ValueError):
