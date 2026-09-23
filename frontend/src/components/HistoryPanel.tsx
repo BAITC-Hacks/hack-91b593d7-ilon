@@ -25,7 +25,7 @@ export function HistoryPanel({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ЭТАП 09 / ИСТОРИЯ</p>
+          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ИСТОРИЯ</p>
           <h3 id="history-title" className="text-xl font-semibold tracking-tight">
             Команды и история
           </h3>

@@ -51,7 +51,7 @@ export function StepNav({
   const currentIndex = STEP_META.findIndex((item) => item.id === step);
 
   return (
-    <nav aria-label="Этапы симулятора" className="grid gap-2 sm:grid-cols-3">
+    <nav aria-label="Экраны симулятора" className="grid gap-2 sm:grid-cols-3">
       {STEP_META.map((item, index) => {
         const active = item.id === step;
         const completed = index < currentIndex;

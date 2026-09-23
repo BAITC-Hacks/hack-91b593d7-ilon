@@ -1,4 +1,4 @@
-# Этап 8 — часть B (AI-совет в UI)
+# AI-совет в UI — чеклист готовности
 
 Статус: **готово** (CouncilPanel на результате, proxy `/api/council/stream`, e2e).
 

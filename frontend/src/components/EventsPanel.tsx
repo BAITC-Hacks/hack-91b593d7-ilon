@@ -78,7 +78,7 @@ export function EventsPanel() {
       aria-labelledby="events-title"
     >
       <div>
-        <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ЭТАП 09 / СОБЫТИЯ</p>
+        <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">СОБЫТИЯ</p>
         <h3 id="events-title" className="text-xl font-semibold tracking-tight">
           Учебное событие
         </h3>

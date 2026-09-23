@@ -50,7 +50,7 @@ export function ShapleyPanel({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ЭТАП 09 / ШЕПЛИ</p>
+          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ВКЛАД МЕР</p>
           <h3 id="shapley-title" className="text-xl font-semibold tracking-tight">
             Вклад мер (Шепли)
           </h3>

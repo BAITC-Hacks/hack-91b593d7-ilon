@@ -77,7 +77,7 @@ export function ChallengePanel({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ЭТАП 07 / CHALLENGE</p>
+          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ПРОВЕРКА ПЛАНА</p>
           <h3 id="challenge-title" className="text-xl font-semibold tracking-tight">
             Оспорить мой план
           </h3>

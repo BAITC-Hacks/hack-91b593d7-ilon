@@ -9,7 +9,7 @@ async function openExampleResult(page: import("@playwright/test").Page) {
   await expect(page.getByTestId("score-after")).toBeVisible({ timeout: 20_000 });
 }
 
-test("этап 9: шепли, событие, история и экспорт", async ({ page }) => {
+test("шепли, событие, история и экспорт", async ({ page }) => {
   test.setTimeout(120_000);
   await openExampleResult(page);
 

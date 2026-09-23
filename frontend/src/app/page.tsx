@@ -28,7 +28,7 @@ function SimulatorShell() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[96rem] flex-col px-4 py-6 sm:px-8 sm:py-8">
-      <AppHeader eyebrow="ФАЗА 04 / СИМУЛЯТОР" />
+      <AppHeader eyebrow="СИМУЛЯТОР" />
       <section className={`space-y-4 ${dense ? "py-3" : "space-y-6 py-8"}`}>
         {!dense ? (
           <div>
@@ -135,7 +135,7 @@ export default function Home() {
       <AppHeader eyebrow="ПОДКЛЮЧЕНИЕ" />
 
       <section className="py-12 sm:py-16" aria-labelledby="page-title">
-        <p className="mb-4 text-xs font-bold tracking-[0.18em] text-[#417463]">ФАЗА 04 / СИМУЛЯТОР</p>
+        <p className="mb-4 text-xs font-bold tracking-[0.18em] text-[#417463]">СИМУЛЯТОР</p>
         <h1 id="page-title" className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-6xl">
           Аким на 5 часов
         </h1>

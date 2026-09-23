@@ -39,7 +39,7 @@ export function ComparePanel({
       aria-labelledby="compare-title"
     >
       <div>
-        <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">ЭТАП 09 / СРАВНЕНИЕ</p>
+        <p className="mb-1 text-xs font-bold tracking-[0.18em] text-[#417463]">СРАВНЕНИЕ</p>
         <h3 id="compare-title" className="text-xl font-semibold tracking-tight">
           Сравнение двух сценариев
         </h3>
