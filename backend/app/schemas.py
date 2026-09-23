@@ -83,6 +83,16 @@ class Scenario(StrictModel):
     decisions: Annotated[list[Decision], Field(min_length=5, max_length=5)]
 
 
+class PreviewScenario(StrictModel):
+    decisions: list[Decision]
+
+
+class PreviewIssue(StrictModel):
+    code: str
+    message: str
+    intervention_id: str | None = None
+
+
 class Synergy(StrictModel):
     pair: tuple[Identifier, Identifier]
     target_intervention_id: Identifier
@@ -223,6 +233,29 @@ class Simulation(StrictModel):
     breakdown_after: ScoreBreakdown
     districts: list[DistrictResult]
     decisions: list[Decision]
+    applied_interventions: list[AppliedIntervention]
+    applied_synergies: list[AppliedSynergy]
+    warnings: list[str]
+
+
+class PreviewResponse(StrictModel):
+    dataset_version: str
+    engine_version: str
+    scenario_id: str | None
+    budget: int
+    spent: int
+    remaining: int
+    valid: bool
+    complete: bool
+    errors: list[PreviewIssue]
+    score_before: Number
+    score_after: Number | None
+    score_delta: Number | None
+    city_before: Metrics
+    city_after: Metrics | None
+    breakdown_before: ScoreBreakdown
+    breakdown_after: ScoreBreakdown | None
+    districts: list[DistrictResult]
     applied_interventions: list[AppliedIntervention]
     applied_synergies: list[AppliedSynergy]
     warnings: list[str]

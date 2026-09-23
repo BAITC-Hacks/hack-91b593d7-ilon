@@ -1,6 +1,5 @@
 import hashlib
 import json
-from collections import Counter
 from decimal import Decimal
 from pathlib import Path
 
@@ -18,6 +17,7 @@ from app.schemas import (
     ScoreBreakdown,
     Simulation,
 )
+from app.validation import inspect_decisions
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "city.v2.json"
 ZERO = Decimal("0")
@@ -39,38 +39,13 @@ def load_city(path: Path = DATA_PATH) -> CityData:
 
 
 def validate_scenario(city: CityData, scenario: Scenario) -> list[Decision]:
-    decisions = sorted(
-        scenario.decisions,
-        key=lambda d: int(d.intervention_id[1:]) if d.intervention_id[1:].isdigit() else 0,
-    )
-    if len(decisions) != city.rules.decisions_count:
+    if len(scenario.decisions) != city.rules.decisions_count:
         raise ScenarioError("count", "Нужно ровно пять решений")
-    ids = [d.intervention_id for d in decisions]
-    if len(set(ids)) != len(ids):
-        raise ScenarioError("duplicate", "Мероприятие можно выбрать только один раз")
-    districts = {d.id for d in city.districts}
-    actions = {a.id: a for a in city.interventions}
-    for decision in decisions:
-        action = actions.get(decision.intervention_id)
-        if action is None:
-            raise ScenarioError("intervention", "Неизвестное мероприятие")
-        if action.scope == "district" and decision.district_id not in districts:
-            raise ScenarioError("district", f"Для {action.id} требуется корректный район")
-        if action.scope == "city" and decision.district_id is not None:
-            raise ScenarioError("scope", f"Для городской меры {action.id} район не указывается")
-    counts = Counter(actions[i].direction for i in ids)
-    if any(count > city.rules.max_per_direction for count in counts.values()):
-        raise ScenarioError("directions", "Не более двух мероприятий одного направления")
-    spent = sum(actions[i].cost for i in ids)
-    if spent > city.budget:
-        raise ScenarioError("budget", f"Расходы {spent} превышают бюджет {city.budget}")
-    by_id = {d.intervention_id: d for d in decisions}
-    for conflict in city.incompatibilities:
-        a, b = conflict.pair
-        if a in by_id and b in by_id:
-            if not conflict.same_district or by_id[a].district_id == by_id[b].district_id:
-                raise ScenarioError("incompatibility", conflict.reason)
-    return decisions
+    inspection = inspect_decisions(city, scenario.decisions)
+    if inspection.errors:
+        first = inspection.errors[0]
+        raise ScenarioError(first.code, first.message)
+    return inspection.decisions
 
 
 def _summarize(city: CityData, values: dict[str, dict[Indicator, Decimal]]):
@@ -107,6 +82,11 @@ def baseline(city: CityData) -> Baseline:
 
 def simulate(city: CityData, scenario: Scenario) -> Simulation:
     decisions = validate_scenario(city, scenario)
+    return calculate_validated(city, decisions)
+
+
+def calculate_validated(city: CityData, decisions: list[Decision]) -> Simulation:
+    """Calculate a validated, canonically ordered set without changing Score rules."""
     before = {d.id: d.metrics.model_dump() for d in city.districts}
     after = {d: values.copy() for d, values in before.items()}
     actions = {a.id: a for a in city.interventions}

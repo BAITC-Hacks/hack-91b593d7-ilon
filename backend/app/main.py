@@ -2,13 +2,16 @@ import json
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from openai import AsyncOpenAI
 
 from app.config import Settings
 from app.council import Council
 from app.engine import ScenarioError, baseline, load_city, simulate
-from app.schemas import Catalog, Scenario, Simulation
+from app.preview import preview
+from app.schemas import Catalog, PreviewResponse, PreviewScenario, Scenario, Simulation
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -44,6 +47,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def scenario_error(_: Request, exc: ScenarioError):
         return JSONResponse(status_code=422, content={"detail": str(exc), "code": exc.code})
 
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request: Request, exc: RequestValidationError):
+        if request.url.path not in {
+            "/api/v1/preview",
+            "/api/v1/simulate",
+            "/api/v1/council/stream",
+        }:
+            return await request_validation_exception_handler(request, exc)
+        wrong_final_count = request.url.path != "/api/v1/preview" and any(
+            error["type"] in {"too_short", "too_long"}
+            and tuple(error["loc"]) == ("body", "decisions")
+            for error in exc.errors()
+        )
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": (
+                    "Нужно ровно пять решений"
+                    if wrong_final_count
+                    else (
+                        "Некорректный формат запроса: передайте массив decisions "
+                        "с intervention_id и необязательным district_id"
+                    )
+                ),
+                "code": "count" if wrong_final_count else "invalid_request",
+            },
+        )
+
     @app.get("/health")
     def health():
         return {
@@ -56,6 +87,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/v1/catalog", response_model=Catalog)
     def catalog():
         return Catalog(city=city, baseline=baseline(city), ai_mode=settings.ai_provider)
+
+    @app.post("/api/v1/preview", response_model=PreviewResponse)
+    def evaluate_preview(draft: PreviewScenario):
+        return preview(city, draft)
 
     @app.post("/api/v1/simulate", response_model=Simulation)
     def evaluate(scenario: Scenario):
