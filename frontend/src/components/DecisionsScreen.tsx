@@ -178,7 +178,7 @@ export function DecisionsScreen() {
 
       <DistrictMapDynamic
         mode="selection"
-        compact
+        layout="split"
         districtScores={catalog.baseline.district_scores}
         criticalByDistrict={criticalByDistrict}
         weakestIds={catalog.baseline.breakdown.weakest_district_ids}
@@ -324,6 +324,32 @@ export function DecisionsScreen() {
           </ul>
         </div>
       ) : null}
+
+      <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-2xl border border-[#d5dcd5] bg-[#f7faf7]/95 p-4 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-[#5c6e64]">
+          {localPreview.complete
+            ? `План готов: ${preview.spent} / ${preview.budget}, ${decisions.length} из 5`
+            : `Выбрано ${decisions.length} из 5 · осталось слотов: ${remainingSlots}`}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={loadExample}
+            className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-[#314740] ring-1 ring-[#d5dcd5]"
+          >
+            Пример сценария
+          </button>
+          <button
+            type="button"
+            data-testid="run-simulate-bottom"
+            disabled={!localPreview.complete || simulating}
+            onClick={() => void runSimulation()}
+            className="rounded-xl bg-[#174f43] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#236957] disabled:opacity-50"
+          >
+            {simulating ? "Считаем…" : localPreview.complete ? "Рассчитать сценарий" : "Нужно 5 решений"}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }

@@ -15,6 +15,8 @@ export interface DistrictMapProps {
   onSelectDistrict?: (id: string) => void;
   compact?: boolean;
   showLabels?: boolean;
+  /** stack = map above chips (default); split = chips left, map right */
+  layout?: "stack" | "split";
 }
 
 export function fillForHealth(args: {

@@ -154,64 +154,94 @@ function DistrictMapInner(props: DistrictMapProps) {
 
 export function DistrictMap(props: DistrictMapProps) {
   const showLabels = props.showLabels ?? true;
+  const layout = props.layout ?? "stack";
+  const split = layout === "split";
 
-  return (
-    <div>
-      <DistrictMapInner {...props} />
-      <div className="mt-3 flex flex-wrap gap-2" aria-label="Районы на карте">
-        {Object.entries(props.districtNames).map(([id, name]) => {
-          const score = props.districtScores[id];
-          const criticalCount = (props.criticalByDistrict[id] ?? []).length;
-          const delta =
-            props.mode === "delta"
-              ? props.districtResults?.find((row) => row.id === id)
-              : undefined;
-          const deltaValue = delta ? delta.score_after - delta.score_before : undefined;
-          return (
-            <button
-              key={id}
-              type="button"
-              data-testid={`map-select-${id}`}
-              onClick={() => props.onSelectDistrict?.(id)}
-              className={`rounded-2xl px-3 py-2 text-left text-xs font-semibold ${
-                props.activeId === id
-                  ? "bg-[#174f43] text-white"
-                  : "bg-white text-[#5c6e64] ring-1 ring-[#d5dcd5]"
-              }`}
-            >
-              <span className="block">{name}</span>
-              {showLabels && score !== undefined ? (
-                <span className="mt-0.5 block font-medium opacity-90">
-                  {props.mode === "delta" && deltaValue !== undefined
-                    ? `${deltaValue >= 0 ? "+" : ""}${formatScore(deltaValue, 2)}`
-                    : formatScore(score, 2)}
-                  {props.mode !== "delta" && criticalCount > 0
-                    ? ` · ${criticalCount} крит.`
-                    : ""}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
+  const chips = (
+    <div
+      className={split ? "flex flex-col gap-2" : "mt-3 flex flex-wrap gap-2"}
+      aria-label="Районы на карте"
+    >
+      {Object.entries(props.districtNames).map(([id, name]) => {
+        const score = props.districtScores[id];
+        const criticalCount = (props.criticalByDistrict[id] ?? []).length;
+        const delta =
+          props.mode === "delta"
+            ? props.districtResults?.find((row) => row.id === id)
+            : undefined;
+        const deltaValue = delta ? delta.score_after - delta.score_before : undefined;
+        return (
+          <button
+            key={id}
+            type="button"
+            data-testid={`map-select-${id}`}
+            onClick={() => props.onSelectDistrict?.(id)}
+            className={`rounded-2xl px-3 py-2 text-left text-xs font-semibold ${
+              split ? "w-full" : ""
+            } ${
+              props.activeId === id
+                ? "bg-[#174f43] text-white"
+                : "bg-white text-[#5c6e64] ring-1 ring-[#d5dcd5]"
+            }`}
+          >
+            <span className="block">{name}</span>
+            {showLabels && score !== undefined ? (
+              <span className="mt-0.5 block font-medium opacity-90">
+                {props.mode === "delta" && deltaValue !== undefined
+                  ? `${deltaValue >= 0 ? "+" : ""}${formatScore(deltaValue, 2)}`
+                  : formatScore(score, 2)}
+                {props.mode !== "delta" && criticalCount > 0
+                  ? ` · ${criticalCount} крит.`
+                  : ""}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const legend = (
+    <div className={`${split ? "mt-3" : "mt-3"} space-y-1 text-xs text-[#6c7b73]`}>
       {props.mode === "delta" ? (
-        <div className="mt-3 space-y-1 text-xs text-[#6c7b73]">
+        <>
           <p>Цвет полигона — изменение оценки района: рост / без существенных изменений / снижение.</p>
           <p>Метка на кнопке показывает дельту Score района, не абсолютный уровень.</p>
-        </div>
+        </>
       ) : (
-        <div className="mt-3 space-y-1 text-xs text-[#6c7b73]">
+        <>
           <p>Цвет полигона — уровень районного Score (высокий / средний / слабый).</p>
-          <p>
-            Отдельно: подпись «N крит.» означает показатели строго ниже 40 внутри района.
-          </p>
-        </div>
+          <p>Отдельно: подпись «N крит.» означает показатели строго ниже 40 внутри района.</p>
+        </>
       )}
       {props.activeId ? (
         <p className="mt-2 text-sm font-semibold text-[#174f43]" data-testid="map-active-district">
           Выбран на карте: {props.districtNames[props.activeId] ?? props.activeId}
         </p>
       ) : null}
+    </div>
+  );
+
+  if (split) {
+    return (
+      <div className="grid gap-4 lg:grid-cols-[minmax(11rem,0.35fr)_minmax(0,1fr)] lg:items-start">
+        <aside className="rounded-2xl border border-[#dce3dc] bg-[#f7faf7] p-3">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#6c7b73]">
+            Выбор района
+          </p>
+          {chips}
+          {legend}
+        </aside>
+        <DistrictMapInner {...props} compact={false} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <DistrictMapInner {...props} />
+      {chips}
+      {legend}
     </div>
   );
 }
