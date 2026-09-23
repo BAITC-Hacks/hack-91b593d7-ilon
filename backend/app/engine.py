@@ -1,18 +1,27 @@
 import hashlib
 import json
-from copy import deepcopy
+from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 from app.schemas import (
+    AppliedIntervention,
+    AppliedSynergy,
+    Baseline,
     CityData,
-    Direction,
+    CriticalIndicator,
+    Decision,
     DistrictResult,
+    Indicator,
     Metrics,
     Scenario,
+    ScoreBreakdown,
     Simulation,
 )
 
-DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "city.v1.json"
+DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "city.v2.json"
+ZERO = Decimal("0")
+HUNDRED = Decimal("100")
 
 
 class ScenarioError(ValueError):
@@ -22,101 +31,154 @@ class ScenarioError(ValueError):
 
 
 def load_city(path: Path = DATA_PATH) -> CityData:
-    city = CityData.model_validate_json(path.read_text(encoding="utf-8"))
-    if len({d.id for d in city.districts}) != len(city.districts):
-        raise ValueError("Повторяющиеся ID районов")
-    if len({a.id for a in city.interventions}) != len(city.interventions):
-        raise ValueError("Повторяющиеся ID мероприятий")
-    if {a.direction for a in city.interventions} != set(Direction):
-        raise ValueError("В каталоге должны быть все пять направлений")
-    simulate(city, city.default_scenario)
+    # Parsing decimal literals directly prevents a float round-trip in source data.
+    raw = json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
+    city = CityData.model_validate(raw)
+    validate_scenario(city, city.default_scenario)
     return city
 
 
-def mean_metrics(values: dict[str, float]) -> float:
-    return sum(values.values()) / len(Direction)
+def validate_scenario(city: CityData, scenario: Scenario) -> list[Decision]:
+    decisions = sorted(
+        scenario.decisions,
+        key=lambda d: int(d.intervention_id[1:]) if d.intervention_id[1:].isdigit() else 0,
+    )
+    if len(decisions) != city.rules.decisions_count:
+        raise ScenarioError("count", "Нужно ровно пять решений")
+    ids = [d.intervention_id for d in decisions]
+    if len(set(ids)) != len(ids):
+        raise ScenarioError("duplicate", "Мероприятие можно выбрать только один раз")
+    districts = {d.id for d in city.districts}
+    actions = {a.id: a for a in city.interventions}
+    for decision in decisions:
+        action = actions.get(decision.intervention_id)
+        if action is None:
+            raise ScenarioError("intervention", "Неизвестное мероприятие")
+        if action.scope == "district" and decision.district_id not in districts:
+            raise ScenarioError("district", f"Для {action.id} требуется корректный район")
+        if action.scope == "city" and decision.district_id is not None:
+            raise ScenarioError("scope", f"Для городской меры {action.id} район не указывается")
+    counts = Counter(actions[i].direction for i in ids)
+    if any(count > city.rules.max_per_direction for count in counts.values()):
+        raise ScenarioError("directions", "Не более двух мероприятий одного направления")
+    spent = sum(actions[i].cost for i in ids)
+    if spent > city.budget:
+        raise ScenarioError("budget", f"Расходы {spent} превышают бюджет {city.budget}")
+    by_id = {d.intervention_id: d for d in decisions}
+    for conflict in city.incompatibilities:
+        a, b = conflict.pair
+        if a in by_id and b in by_id:
+            if not conflict.same_district or by_id[a].district_id == by_id[b].district_id:
+                raise ScenarioError("incompatibility", conflict.reason)
+    return decisions
+
+
+def _summarize(city: CityData, values: dict[str, dict[Indicator, Decimal]]):
+    ratings = {
+        d.id: sum(city.weights[k] * values[d.id][k] for k in Indicator) for d in city.districts
+    }
+    metrics = {
+        k: sum(d.population_share * values[d.id][k] for d in city.districts) for k in Indicator
+    }
+    average = sum(d.population_share * ratings[d.id] for d in city.districts)
+    minimum = min(ratings.values())
+    critical = [
+        CriticalIndicator(district_id=d.id, indicator=k, value=values[d.id][k])
+        for d in city.districts
+        for k in Indicator
+        if values[d.id][k] < city.rules.critical_threshold
+    ]
+    breakdown = ScoreBreakdown(
+        weighted_average=average,
+        minimum=minimum,
+        weakest_district_ids=sorted(d for d, score in ratings.items() if score == minimum),
+        critical_count=len(critical),
+        critical_indicators=critical,
+        score=Decimal("0.7") * average + Decimal("0.3") * minimum - len(critical),
+    )
+    return ratings, Metrics(**metrics), breakdown
+
+
+def baseline(city: CityData) -> Baseline:
+    values = {d.id: d.metrics.model_dump() for d in city.districts}
+    ratings, metrics, breakdown = _summarize(city, values)
+    return Baseline(city_metrics=metrics, district_scores=ratings, breakdown=breakdown)
 
 
 def simulate(city: CityData, scenario: Scenario) -> Simulation:
-    if {d.direction for d in scenario.decisions} != set(Direction):
-        raise ScenarioError("directions", "Нужно ровно одно решение по каждому из пяти направлений")
-    districts = {d.id: d for d in city.districts}
-    actions = {a.id: a for a in city.interventions}
-    decisions = sorted(scenario.decisions, key=lambda d: d.direction)
-    spent = 0
-    for decision in decisions:
-        if decision.district_id not in districts:
-            raise ScenarioError("district", "Неизвестный район")
-        action = actions.get(decision.intervention_id)
-        if action is None or action.direction != decision.direction:
-            raise ScenarioError("intervention", "Мероприятие не соответствует направлению")
-        if not action.min_amount <= decision.amount <= action.max_amount:
-            raise ScenarioError("amount", "Сумма вне допустимого диапазона мероприятия")
-        if decision.amount % city.allocation_step:
-            raise ScenarioError("step", f"Шаг бюджета: {city.allocation_step} условных тенге")
-        spent += decision.amount
-    if spent > city.budget:
-        raise ScenarioError("budget", "Сценарий превышает общий бюджет")
-
+    decisions = validate_scenario(city, scenario)
     before = {d.id: d.metrics.model_dump() for d in city.districts}
-    after = deepcopy(before)
-    # Positive effects depend on the original deficit; all effects are additive.
-    # Clamp only after every decision, making the result independent of input order.
+    after = {d: values.copy() for d, values in before.items()}
+    actions = {a.id: a for a in city.interventions}
+    applied = []
     for decision in decisions:
         action = actions[decision.intervention_id]
-        for direction, coefficient in action.effects_per_million.model_dump().items():
-            deficit = 1 - before[decision.district_id][direction] / 100
-            multiplier = deficit if coefficient > 0 else 1
-            after[decision.district_id][direction] += (
-                decision.amount / 1_000_000 * coefficient * multiplier
+        targets = list(after) if action.scope == "city" else [decision.district_id]
+        fraction = Decimal(city.horizon - action.lag) / Decimal(city.horizon)
+        effects = {k: value * fraction for k, value in action.effects.items()}
+        for target in targets:
+            for indicator, effect in effects.items():
+                after[target][indicator] += effect
+        applied.append(
+            AppliedIntervention(
+                intervention_id=action.id,
+                district_ids=targets,
+                cost=action.cost,
+                lag=action.lag,
+                realized_fraction=fraction,
+                effects=effects,
             )
-    for metrics in after.values():
-        for direction, value in metrics.items():
-            metrics[direction] = max(0, min(100, value))
-
-    population = sum(d.population for d in city.districts)
-
-    def weighted(values: dict[str, dict[str, float]]) -> dict[str, float]:
-        return {
-            direction.value: sum(
-                values[d.id][direction] * d.population for d in city.districts
-            ) / population
-            for direction in Direction
-        }
-
-    def rounded(values: dict[str, float]) -> Metrics:
-        return Metrics(**{k: round(v, 3) for k, v in values.items()})
-
-    city_before, city_after = weighted(before), weighted(after)
-    score_before, score_after = mean_metrics(city_before), mean_metrics(city_after)
+        )
+    by_id = {d.intervention_id: d for d in decisions}
+    synergies = []
+    for synergy in city.synergies:
+        if all(i in by_id for i in synergy.pair):
+            target = by_id[synergy.target_intervention_id].district_id
+            for indicator, effect in synergy.effects.items():
+                after[target][indicator] += effect
+            synergies.append(
+                AppliedSynergy(
+                    pair=synergy.pair,
+                    district_id=target,
+                    effects=synergy.effects,
+                )
+            )
+    # Clamp once, after all positive/negative effects and fixed synergy bonuses.
+    for values in after.values():
+        for key, value in values.items():
+            values[key] = max(ZERO, min(HUNDRED, value))
+    scores_before, city_before, breakdown_before = _summarize(city, before)
+    scores_after, city_after, breakdown_after = _summarize(city, after)
     rows = [
         DistrictResult(
             id=d.id,
             name=d.name,
-            before=rounded(before[d.id]),
-            after=rounded(after[d.id]),
-            score_before=round(mean_metrics(before[d.id]), 3),
-            score_after=round(mean_metrics(after[d.id]), 3),
+            before=Metrics(**before[d.id]),
+            after=Metrics(**after[d.id]),
+            delta={k: after[d.id][k] - before[d.id][k] for k in Indicator},
+            score_before=scores_before[d.id],
+            score_after=scores_after[d.id],
         )
         for d in city.districts
     ]
-    warnings = []
-    for district in rows:
-        for direction in Direction:
-            if getattr(district.after, direction) < getattr(district.before, direction):
-                warnings.append(f"{district.name}: снижение показателя {direction.value}")
+    warnings = [
+        f"{d.name}: снижение показателя {k.value}"
+        for d in rows
+        for k in Indicator
+        if d.delta[k] < 0
+    ]
     untouched = [d.name for d in rows if d.before == d.after]
     if untouched:
         warnings.append("Районы без изменений: " + ", ".join(untouched))
+    # Decimal strings retain source precision in the hash; wire responses use JSON numbers.
     canonical = json.dumps(
-        {
-            "dataset": city.model_dump(mode="json"),
-            "decisions": [d.model_dump(mode="json") for d in decisions],
-        },
+        {"dataset": city.model_dump(), "decisions": [d.model_dump() for d in decisions]},
+        default=str,
         sort_keys=True,
         ensure_ascii=False,
         separators=(",", ":"),
     )
+    spent = sum(a.cost for a in applied)
     return Simulation(
         scenario_id=hashlib.sha256(canonical.encode()).hexdigest()[:16],
         dataset_version=city.version,
@@ -124,12 +186,16 @@ def simulate(city: CityData, scenario: Scenario) -> Simulation:
         budget=city.budget,
         spent=spent,
         remaining=city.budget - spent,
-        score_before=round(score_before, 3),
-        score_after=round(score_after, 3),
-        score_delta=round(score_after - score_before, 3),
-        city_before=rounded(city_before),
-        city_after=rounded(city_after),
+        score_before=breakdown_before.score,
+        score_after=breakdown_after.score,
+        score_delta=breakdown_after.score - breakdown_before.score,
+        city_before=city_before,
+        city_after=city_after,
+        breakdown_before=breakdown_before,
+        breakdown_after=breakdown_after,
         districts=rows,
         decisions=decisions,
+        applied_interventions=applied,
+        applied_synergies=synergies,
         warnings=warnings,
     )

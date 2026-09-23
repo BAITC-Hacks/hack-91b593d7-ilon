@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 
 from app.config import Settings
 from app.council import Council
-from app.engine import ScenarioError, load_city, simulate
+from app.engine import ScenarioError, baseline, load_city, simulate
 from app.schemas import Catalog, Scenario, Simulation
 
 
@@ -35,7 +35,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Аким на 5 часов API",
-        version="0.1.0",
+        version="0.2.0",
         description="Учебная модель города и совет из трёх экспертов. Все данные синтетические.",
         lifespan=lifespan,
     )
@@ -46,11 +46,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "ai_provider": settings.ai_provider, "dataset": city.version}
+        return {
+            "status": "ok",
+            "ai_provider": settings.ai_provider,
+            "dataset": city.version,
+            "engine": city.engine_version,
+        }
 
     @app.get("/api/v1/catalog", response_model=Catalog)
     def catalog():
-        return Catalog(city=city, ai_mode=settings.ai_provider)
+        return Catalog(city=city, baseline=baseline(city), ai_mode=settings.ai_provider)
 
     @app.post("/api/v1/simulate", response_model=Simulation)
     def evaluate(scenario: Scenario):

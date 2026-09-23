@@ -1,0 +1,24 @@
+{
+  "decisions": [
+    {
+      "intervention_id": "M7",
+      "district_id": "nura"
+    },
+    {
+      "intervention_id": "M8",
+      "district_id": "nura"
+    },
+    {
+      "intervention_id": "M10",
+      "district_id": "nura"
+    },
+    {
+      "intervention_id": "M12",
+      "district_id": null
+    },
+    {
+      "intervention_id": "M5",
+      "district_id": "saryarka"
+    }
+  ]
+}
