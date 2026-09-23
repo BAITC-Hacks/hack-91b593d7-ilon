@@ -7,11 +7,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from openai import AsyncOpenAI
 
+from app.challenge import challenge
 from app.config import Settings
 from app.council import Council
 from app.engine import ScenarioError, baseline, load_city, simulate
 from app.preview import preview
-from app.schemas import Catalog, PreviewResponse, PreviewScenario, Scenario, Simulation
+from app.schemas import (
+    Catalog,
+    ChallengeResponse,
+    PreviewResponse,
+    PreviewScenario,
+    Scenario,
+    Simulation,
+)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -52,6 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.url.path not in {
             "/api/v1/preview",
             "/api/v1/simulate",
+            "/api/v1/challenge",
             "/api/v1/council/stream",
         }:
             return await request_validation_exception_handler(request, exc)
@@ -95,6 +104,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/v1/simulate", response_model=Simulation)
     def evaluate(scenario: Scenario):
         return simulate(city, scenario)
+
+    @app.post("/api/v1/challenge", response_model=ChallengeResponse)
+    def evaluate_challenge(scenario: Scenario):
+        return challenge(city, scenario)
 
     @app.post("/api/v1/council/stream", response_class=StreamingResponse)
     async def council(scenario: Scenario, request: Request):

@@ -291,3 +291,34 @@ class Catalog(StrictModel):
     city: CityData
     baseline: Baseline
     ai_mode: Literal["demo", "openai"]
+
+
+class ChallengeStatus(StrEnum):
+    score_improves = "score_improves"
+    no_score_improvement = "no_score_improvement"
+    no_candidate = "no_candidate"
+
+
+class ChallengeReplacement(StrictModel):
+    slot_index: Annotated[int, Field(strict=True, ge=0, lt=5)]
+    removed: Decision
+    added: Decision
+
+
+class ChallengeMetricLoss(StrictModel):
+    district_id: str
+    district_name: str
+    indicator: Indicator
+    before: Number
+    after: Number
+    delta: Number
+
+
+class ChallengeResponse(StrictModel):
+    status: ChallengeStatus
+    candidates_checked: Annotated[int, Field(strict=True, ge=0)]
+    original: Simulation
+    alternative: Simulation | None
+    replacement: ChallengeReplacement | None
+    metric_losses: list[ChallengeMetricLoss]
+    question: str

@@ -1,7 +1,7 @@
 import "server-only";
 
 type BackendGetPath = "/health" | "/api/v1/catalog";
-type BackendPostPath = "/api/v1/preview" | "/api/v1/simulate";
+type BackendPostPath = "/api/v1/preview" | "/api/v1/simulate" | "/api/v1/challenge";
 
 function baseUrl() {
   return process.env.API_INTERNAL_URL || "http://127.0.0.1:8000";
@@ -15,7 +15,7 @@ function upstreamFailure(timedOut: boolean) {
   return Response.json(
     {
       error: timedOut
-        ? "Сервер не ответил за 5 секунд. Попробуйте ещё раз."
+        ? "Сервер не ответил за отведённое время. Попробуйте ещё раз."
         : "Нет связи с сервером. Проверьте, что backend запущен, и повторите попытку.",
     },
     { status: timedOut ? 504 : 502, headers: noStoreHeaders() },
@@ -52,8 +52,12 @@ export async function proxyBackend(path: BackendGetPath) {
   }
 }
 
-export async function proxyBackendPost(path: BackendPostPath, body: unknown) {
-  const signal = AbortSignal.timeout(15_000);
+export async function proxyBackendPost(
+  path: BackendPostPath,
+  body: unknown,
+  timeoutMs = 15_000,
+) {
+  const signal = AbortSignal.timeout(timeoutMs);
 
   try {
     const response = await fetch(new URL(path, baseUrl()), {
@@ -84,5 +88,57 @@ export async function proxyBackendPost(path: BackendPostPath, body: unknown) {
     });
   } catch (error) {
     return upstreamFailure(isTimeout(error, signal));
+  }
+}
+
+export async function proxyBackendStream(body: unknown, requestSignal: AbortSignal) {
+  const handshake = new AbortController();
+  const signal = AbortSignal.any([requestSignal, handshake.signal]);
+  const timeout = setTimeout(
+    () => handshake.abort(new DOMException("Backend did not respond", "TimeoutError")),
+    15_000,
+  );
+
+  try {
+    const response = await fetch(new URL("/api/v1/council/stream", baseUrl()), {
+      method: "POST",
+      cache: "no-store",
+      signal,
+      headers: {
+        Accept: "application/x-ndjson",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.body) {
+      return Response.json(
+        { error: "Сервер вернул пустой ответ совета. Попробуйте ещё раз." },
+        { status: 502, headers: noStoreHeaders() },
+      );
+    }
+
+    if (!response.ok) {
+      return new Response(response.body, {
+        status: response.status,
+        headers: {
+          ...noStoreHeaders(),
+          "Content-Type": response.headers.get("Content-Type") || "application/json",
+        },
+      });
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        ...noStoreHeaders(),
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch (error) {
+    return upstreamFailure(isTimeout(error, signal));
+  } finally {
+    clearTimeout(timeout);
   }
 }

@@ -164,3 +164,68 @@ export interface ApiFailure {
   detail?: string;
   code?: string;
 }
+
+export type CouncilRole = "urbanist" | "economist" | "resident";
+export type CouncilStance = "agree" | "partly_agree" | "disagree";
+
+export interface CouncilOpinion {
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  recommendations: string[];
+}
+
+export interface CouncilReview {
+  role: CouncilRole;
+  name: string;
+  opinion: CouncilOpinion;
+}
+
+export interface CouncilReply {
+  role: CouncilRole;
+  name: string;
+  reply: {
+    reply_to: CouncilRole;
+    stance: CouncilStance;
+    argument: string;
+    recommendation: string;
+  };
+}
+
+export type CouncilEvent =
+  | { type: "simulation"; data: Simulation }
+  | { type: "mode"; data: { provider: "demo" | "openai" } }
+  | { type: "review"; data: CouncilReview }
+  | { type: "reply"; data: CouncilReply }
+  | { type: "done"; data: { scenario_id: string } }
+  | { type: "error"; data: { message: string; provider: "demo" | "openai" } };
+
+export type ChallengeStatus =
+  | "score_improves"
+  | "no_score_improvement"
+  | "no_candidate";
+
+export interface ChallengeReplacement {
+  slot_index: number;
+  removed: Decision;
+  added: Decision;
+}
+
+export interface ChallengeMetricLoss {
+  district_id: string;
+  district_name: string;
+  indicator: Indicator;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface ChallengeResponse {
+  status: ChallengeStatus;
+  candidates_checked: number;
+  original: Simulation;
+  alternative: Simulation | null;
+  replacement: ChallengeReplacement | null;
+  metric_losses: ChallengeMetricLoss[];
+  question: string;
+}

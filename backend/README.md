@@ -19,10 +19,15 @@ curl -s http://127.0.0.1:8000/api/v1/catalog
 curl -s -X POST http://127.0.0.1:8000/api/v1/simulate \
   -H 'Content-Type: application/json' \
   --data-binary @examples/scenario.json
+curl -s -X POST http://127.0.0.1:8000/api/v1/challenge \
+  -H 'Content-Type: application/json' \
+  --data-binary @examples/scenario.json
 curl -sN -X POST http://127.0.0.1:8000/api/v1/council/stream \
   -H 'Content-Type: application/json' \
   --data-binary @examples/scenario.json
 ```
+
+`POST /api/v1/challenge` ищет лучшую **одну** замену среди допустимых планов тем же валидатором и движком (не глобальный оптимум). Для контрольного сценария ожидается замена M5 Сарыарка → M3 Нура.
 
 `POST /api/v1/council/stream` возвращает NDJSON: сначала готовый расчёт, затем режим AI, мнения трёх ролей, ответы друг другу и завершение. Если провайдер не ответил, поток содержит явное событие `error`; вычисленный Score остаётся доступен.
 

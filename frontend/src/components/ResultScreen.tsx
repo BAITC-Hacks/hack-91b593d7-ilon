@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChallengePanel } from "@/components/ChallengePanel";
+import { CouncilPanel } from "@/components/CouncilPanel";
 import { useSimulator } from "@/components/SimulatorProvider";
 import { DistrictMapDynamic } from "@/components/DistrictMapDynamic";
 import { INDICATOR_ORDER, formatNumber, formatScore } from "@/lib/labels";
@@ -103,7 +105,7 @@ export function ResultScreen() {
             Последствия сценария
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5c6e64]">
-            Score рассчитан движком. AI-совет экспертов будет на следующем этапе.
+            Score рассчитан движком. Ниже можно оспорить план одной заменой; AI-совет подключается отдельно.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -263,12 +265,9 @@ export function ResultScreen() {
         ))}
       </div>
 
-      <aside className="rounded-3xl border border-dashed border-[#c5d2c9] bg-[#f7faf7] p-5">
-        <p className="text-sm font-semibold text-[#314740]">Совет экспертов</p>
-        <p className="mt-2 text-sm leading-6 text-[#6c7b73]">
-          Подключение AI-совета (урбанист, финдиректор, голос жителей) — следующий этап.
-        </p>
-      </aside>
+      <ChallengePanel />
+
+      <CouncilPanel key={simulation.scenario_id} />
     </section>
   );
 }
