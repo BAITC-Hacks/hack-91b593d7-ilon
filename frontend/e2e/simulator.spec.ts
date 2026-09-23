@@ -16,6 +16,6 @@ test("полный сценарий: город → пример → расчё�
   await expect(page.getByTestId("score-after")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("score-before")).toContainText("52");
   await expect(page.getByTestId("score-after")).toContainText("56");
-  await page.getByTestId("explain-toggle").click();
   await expect(page.getByTestId("explain-content")).toBeVisible();
+  await expect(page.getByTestId("council-panel")).toBeVisible();
 });

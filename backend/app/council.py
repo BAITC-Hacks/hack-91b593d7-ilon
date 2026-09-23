@@ -146,22 +146,29 @@ class Council:
         if reviews is not None:
             payload["reviews"] = [r.model_dump(mode="json") for r in reviews]
             round_instruction = "Раунд 2: ответь конкретному другому эксперту по его аргументу. Выбери reply_to, отличающийся от твоей роли. Обозначь согласие или предмет разногласия."
-        response = await self.client.responses.parse(
-            model=self.settings.openai_model,
-            input=[
-                {
-                    "role": "system",
-                    "content": RULES
-                    + MISSIONS[role]
-                    + f"\nТвоя роль: {role}. "
-                    + round_instruction,
-                },
-                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
-            ],
-            text_format=schema,
-            store=False,
-            max_output_tokens=2000,
-        )
+        try:
+            response = await self.client.responses.parse(
+                model=self.settings.openai_model,
+                input=[
+                    {
+                        "role": "system",
+                        "content": RULES
+                        + MISSIONS[role]
+                        + f"\nТвоя роль: {role}. "
+                        + round_instruction,
+                    },
+                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                ],
+                text_format=schema,
+                store=False,
+                max_output_tokens=2000,
+            )
+        except Exception as exc:
+            # Never log request bodies or API keys. Surface a short typed reason.
+            name = type(exc).__name__
+            detail = str(exc).split("\n", 1)[0][:180]
+            logger.warning("Council model call failed (%s): %s", name, detail)
+            raise CouncilError(f"Ошибка модели ({name}): {detail}") from exc
         if response.output_parsed is None:
             raise CouncilError("Модель не вернула структурированный ответ")
         return response.output_parsed
@@ -191,7 +198,11 @@ class Council:
             yield {
                 "type": "error",
                 "data": {
-                    "message": "Совет не завершён. Проверьте доступ к модели и повторите запрос. Расчёт Score сохранён.",
+                    "message": (
+                        str(exc)
+                        if isinstance(exc, CouncilError)
+                        else "Совет не завершён. Проверьте доступ к модели и повторите запрос. Расчёт Score сохранён."
+                    ),
                     "provider": self.settings.ai_provider,
                 },
             }

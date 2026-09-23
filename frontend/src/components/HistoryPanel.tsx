@@ -42,7 +42,9 @@ export function HistoryPanel({
       </div>
 
       {history.length === 0 ? (
-        <p className="text-sm text-[#6c7b73]">Пока нет сохранённых прогонов.</p>
+        <p className="text-sm text-[#6c7b73]" data-testid="history-list">
+          Пока нет сохранённых прогонов.
+        </p>
       ) : (
         <ul className="space-y-2" data-testid="history-list">
           {history.map((entry) => (

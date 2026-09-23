@@ -13,15 +13,19 @@ test("этап 9: шепли, событие, история и экспорт",
   test.setTimeout(120_000);
   await openExampleResult(page);
 
-  await expect(page.getByTestId("history-list")).toBeVisible();
   await expect(page.getByTestId("export-bar")).toBeVisible();
   await expect(page.getByTestId("export-markdown")).toBeVisible();
 
+  await page.getByRole("tab", { name: "История" }).click();
+  await expect(page.getByTestId("history-list")).toBeVisible();
+
+  await page.getByRole("tab", { name: "События" }).click();
   await page.getByTestId("events-select").selectOption("heatwave-nura");
   await expect(page.getByTestId("events-overlay")).toBeVisible();
   await expect(page.getByTestId("events-official-score")).toContainText("56");
   await expect(page.getByTestId("events-edu-score")).toBeVisible();
 
+  await page.getByRole("tab", { name: "Вклад мер" }).click();
   await page.getByTestId("shapley-run").click();
   await expect(page.getByTestId("shapley-result")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId("shapley-sum")).toBeVisible();

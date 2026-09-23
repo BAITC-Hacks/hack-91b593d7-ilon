@@ -24,34 +24,48 @@ async function readJson<T>(url: string, signal: AbortSignal): Promise<T> {
 
 function SimulatorShell() {
   const { step, setStep, catalog } = useSimulator();
+  const dense = step === "result";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-7 sm:px-10 sm:py-10">
+    <main className="mx-auto flex min-h-screen max-w-[96rem] flex-col px-4 py-6 sm:px-8 sm:py-8">
       <AppHeader eyebrow="ФАЗА 04 / СИМУЛЯТОР" />
-      <section className="space-y-6 py-8">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Аким на 5 часов</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[#5c6e64]">
-            Изучите состояние модельной Астаны, примите ровно пять решений и посмотрите, как
-            изменится Astana Quality of Life Score по правилам синтетической модели.
-          </p>
-        </div>
+      <section className={`space-y-4 ${dense ? "py-3" : "space-y-6 py-8"}`}>
+        {!dense ? (
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Аким на 5 часов</h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#5c6e64]">
+              Изучите состояние модельной Астаны, примите ровно пять решений и посмотрите, как
+              изменится Astana Quality of Life Score по правилам синтетической модели.
+            </p>
+          </div>
+        ) : null}
         <StepNav step={step} onSelect={setStep} />
-        <p className="text-xs text-[#6c7b73]">
-          Датасет <span data-testid="dataset-version">{catalog.city.version}</span> · районов{" "}
-          <span data-testid="district-count">{catalog.city.districts.length}</span> · мероприятий{" "}
-          <span data-testid="intervention-count">{catalog.city.interventions.length}</span> · AI{" "}
-          <span data-testid="ai-mode">
-            {catalog.ai_mode === "demo" ? "Демонстрационный" : "OpenAI"}
-          </span>
-        </p>
+        {!dense ? (
+          <p className="text-xs text-[#6c7b73]">
+            Датасет <span data-testid="dataset-version">{catalog.city.version}</span> · районов{" "}
+            <span data-testid="district-count">{catalog.city.districts.length}</span> · мероприятий{" "}
+            <span data-testid="intervention-count">{catalog.city.interventions.length}</span> · AI{" "}
+            <span data-testid="ai-mode">
+              {catalog.ai_mode === "demo" ? "Демонстрационный" : "OpenAI"}
+            </span>
+          </p>
+        ) : (
+          <p className="sr-only">
+            Датасет <span data-testid="dataset-version">{catalog.city.version}</span> · районов{" "}
+            <span data-testid="district-count">{catalog.city.districts.length}</span> · мероприятий{" "}
+            <span data-testid="intervention-count">{catalog.city.interventions.length}</span> · AI{" "}
+            <span data-testid="ai-mode">
+              {catalog.ai_mode === "demo" ? "Демонстрационный" : "OpenAI"}
+            </span>
+          </p>
+        )}
       </section>
 
       {step === "city" ? <CityScreen /> : null}
       {step === "decisions" ? <DecisionsScreen /> : null}
       {step === "result" ? <ResultScreen /> : null}
 
-      <footer className="mt-12 flex flex-wrap justify-between gap-3 border-t border-[#d5dcd5] pt-5 text-xs text-[#6c7b73]">
+      <footer className="mt-8 flex flex-wrap justify-between gap-3 border-t border-[#d5dcd5] pt-4 text-xs text-[#6c7b73]">
         <span>Astana Quality of Life</span>
         <span>{catalog.city.disclaimer}</span>
       </footer>
@@ -117,7 +131,7 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-7 sm:px-10 sm:py-10">
+    <main className="mx-auto flex min-h-screen max-w-[96rem] flex-col px-4 py-6 sm:px-8 sm:py-8">
       <AppHeader eyebrow="ПОДКЛЮЧЕНИЕ" />
 
       <section className="py-12 sm:py-16" aria-labelledby="page-title">

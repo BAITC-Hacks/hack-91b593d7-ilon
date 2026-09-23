@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     ai_provider: Literal["demo", "openai"] = "demo"
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = ""
-    openai_timeout_seconds: float = 45
+    # Optional override for OpenAI-compatible gateways. Empty = https://api.openai.com/v1
+    openai_base_url: str = ""
+    openai_timeout_seconds: float = 90
 
     @model_validator(mode="after")
     def check_provider(self) -> "Settings":

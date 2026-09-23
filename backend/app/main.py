@@ -35,6 +35,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 api_key=settings.openai_api_key.get_secret_value(),
                 timeout=settings.openai_timeout_seconds,
                 max_retries=1,
+                **(
+                    {"base_url": settings.openai_base_url.strip()}
+                    if settings.openai_base_url.strip()
+                    else {}
+                ),
             )
             if settings.ai_provider == "openai"
             else None

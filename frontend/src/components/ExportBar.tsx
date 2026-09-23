@@ -28,23 +28,20 @@ export function ExportBar({
   }
 
   return (
-    <div
-      data-testid="export-bar"
-      className="flex flex-wrap gap-2 rounded-3xl border border-[#dce3dc] bg-white p-4 print:hidden"
-    >
+    <div data-testid="export-bar" className="flex flex-wrap gap-2 print:hidden">
       <button
         type="button"
         data-testid="export-markdown"
         onClick={onMarkdown}
-        className="rounded-xl bg-[#174f43] px-4 py-3 text-sm font-semibold text-white"
+        className="rounded-xl bg-[#174f43] px-3 py-2 text-xs font-semibold text-white"
       >
-        Скачать Markdown
+        Markdown
       </button>
       <button
         type="button"
         data-testid="export-print"
         onClick={() => window.print()}
-        className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-[#314740] ring-1 ring-[#d5dcd5]"
+        className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#314740] ring-1 ring-[#d5dcd5]"
       >
         Печать / PDF
       </button>

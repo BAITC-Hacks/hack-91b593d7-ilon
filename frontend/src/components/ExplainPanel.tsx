@@ -15,12 +15,14 @@ export function ExplainPanel({
   simulation,
   interventionNames,
   districtNames,
+  compact = false,
 }: {
   simulation: Simulation;
   interventionNames: Record<string, string>;
   districtNames: Record<string, string>;
+  compact?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(compact);
 
   const changedDistricts = useMemo(
     () =>
@@ -46,33 +48,45 @@ export function ExplainPanel({
   return (
     <section
       data-testid="explain-panel"
-      className="rounded-3xl border border-[#dce3dc] bg-white p-5"
+      className={`border border-[#dce3dc] bg-white ${compact ? "rounded-2xl p-3" : "rounded-3xl p-5"}`}
       aria-labelledby="explain-title"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 id="explain-title" className="text-xl font-semibold tracking-tight">
+          <h3
+            id="explain-title"
+            className={`font-semibold tracking-tight ${compact ? "text-base" : "text-xl"}`}
+          >
             Почему изменился Score?
           </h3>
-          <p className="mt-2 text-sm text-[#5c6e64]">
-            Объяснение собрано из ответа движка, без отдельного AI-расчёта математики.
-          </p>
+          {!compact ? (
+            <p className="mt-2 text-sm text-[#5c6e64]">
+              Объяснение собрано из ответа движка, без отдельного AI-расчёта математики.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-[#5c6e64]">Из ответа движка, без AI-математики.</p>
+          )}
         </div>
         <button
           type="button"
           data-testid="explain-toggle"
           onClick={() => setOpen((value) => !value)}
-          className="rounded-xl bg-[#174f43] px-5 py-3 text-sm font-semibold text-white"
+          className={`rounded-xl bg-[#174f43] font-semibold text-white ${
+            compact ? "px-3 py-1.5 text-xs" : "px-5 py-3 text-sm"
+          }`}
         >
-          {open ? "Скрыть объяснение" : "Почему изменился Score?"}
+          {open ? "Свернуть" : "Показать"}
         </button>
       </div>
 
       {open ? (
-        <div className="mt-5 space-y-5" data-testid="explain-content">
+        <div
+          className={`space-y-3 ${compact ? "mt-3" : "mt-5 space-y-5"}`}
+          data-testid="explain-content"
+        >
           <div>
-            <p className="text-sm font-semibold">Районы с изменением оценки</p>
-            <ul className="mt-2 space-y-1 text-sm text-[#5c6e64]">
+            <p className={`font-semibold ${compact ? "text-xs" : "text-sm"}`}>Районы</p>
+            <ul className={`mt-1 space-y-0.5 text-[#5c6e64] ${compact ? "text-xs" : "text-sm"}`}>
               {changedDistricts.map((row) => (
                 <li key={row.id}>
                   {row.name}: {formatScore(row.score_before, 2)} → {formatScore(row.score_after, 2)} (
@@ -84,40 +98,35 @@ export function ExplainPanel({
           </div>
 
           <div>
-            <p className="text-sm font-semibold">Мероприятия и горизонт эффекта</p>
-            <ul className="mt-2 space-y-2 text-sm text-[#5c6e64]">
+            <p className={`font-semibold ${compact ? "text-xs" : "text-sm"}`}>Меры и эффект</p>
+            <ul className={`mt-1 space-y-1 text-[#5c6e64] ${compact ? "text-xs" : "text-sm"}`}>
               {simulation.applied_interventions?.map((item) => (
                 <li key={item.intervention_id}>
                   <span className="font-medium text-[#314740]">
-                    {item.intervention_id} · {interventionNames[item.intervention_id] ?? item.intervention_id}
+                    {item.intervention_id} ·{" "}
+                    {interventionNames[item.intervention_id] ?? item.intervention_id}
                   </span>
                   {" · "}
-                  {formatLag(item.lag)} · учтено {formatNumber(Number(item.realized_fraction) * 8, 0)}
-                  /8 к горизонту
-                  <ul className="mt-1 pl-4">
-                    {(Object.entries(item.effects) as [keyof typeof item.effects, number][]).map(
-                      ([key, value]) => (
-                        <li key={String(key)}>
-                          {formatIndicator(key as never)} {value > 0 ? "+" : ""}
-                          {formatNumber(Number(value), 2)}
-                        </li>
-                      ),
-                    )}
-                  </ul>
+                  {formatLag(item.lag)}
+                  {!compact ? (
+                    <>
+                      {" · "}
+                      учтено {formatNumber(Number(item.realized_fraction) * 8, 0)}/8
+                    </>
+                  ) : null}
                 </li>
-              )) ?? (
-                <li>Движок не вернул детализацию applied_interventions в этом ответе.</li>
-              )}
+              )) ?? <li>Нет детализации applied_interventions.</li>}
             </ul>
           </div>
 
           {simulation.applied_synergies.length > 0 ? (
             <div>
-              <p className="text-sm font-semibold">Сработавшие синергии</p>
-              <ul className="mt-2 space-y-1 text-sm text-[#5c6e64]">
+              <p className={`font-semibold ${compact ? "text-xs" : "text-sm"}`}>Синергии</p>
+              <ul className={`mt-1 space-y-0.5 text-[#5c6e64] ${compact ? "text-xs" : "text-sm"}`}>
                 {simulation.applied_synergies.map((item) => (
                   <li key={`${item.pair.join("-")}-${item.district_id}`}>
-                    {item.pair.join(" + ")} в районе {districtNames[item.district_id] ?? item.district_id}
+                    {item.pair.join(" + ")} ·{" "}
+                    {districtNames[item.district_id] ?? item.district_id}
                   </li>
                 ))}
               </ul>
@@ -125,12 +134,13 @@ export function ExplainPanel({
           ) : null}
 
           <div>
-            <p className="text-sm font-semibold">Критические показатели</p>
-            <p className="mt-1 text-sm text-[#5c6e64]">
-              {simulation.breakdown_before.critical_count} → {simulation.breakdown_after.critical_count}
+            <p className={`font-semibold ${compact ? "text-xs" : "text-sm"}`}>Критические</p>
+            <p className={`mt-1 text-[#5c6e64] ${compact ? "text-xs" : "text-sm"}`}>
+              {simulation.breakdown_before.critical_count} →{" "}
+              {simulation.breakdown_after.critical_count}
             </p>
             {resolved.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-sm text-[#174f43]">
+              <ul className={`mt-1 space-y-0.5 text-[#174f43] ${compact ? "text-xs" : "text-sm"}`}>
                 {resolved.map((key) => {
                   const [districtId, indicator] = key.split(":");
                   return (
@@ -143,7 +153,7 @@ export function ExplainPanel({
               </ul>
             ) : null}
             {appeared.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-sm text-[#8c4a29]">
+              <ul className={`mt-1 space-y-0.5 text-[#8c4a29] ${compact ? "text-xs" : "text-sm"}`}>
                 {appeared.map((key) => {
                   const [districtId, indicator] = key.split(":");
                   return (
@@ -160,8 +170,8 @@ export function ExplainPanel({
 
           {simulation.warnings.length > 0 ? (
             <div>
-              <p className="text-sm font-semibold">Предупреждения модели</p>
-              <ul className="mt-2 space-y-1 text-sm text-[#8c4a29]">
+              <p className={`font-semibold ${compact ? "text-xs" : "text-sm"}`}>Предупреждения</p>
+              <ul className={`mt-1 space-y-0.5 text-[#8c4a29] ${compact ? "text-xs" : "text-sm"}`}>
                 {simulation.warnings.map((warning) => (
                   <li key={warning}>{warning}</li>
                 ))}

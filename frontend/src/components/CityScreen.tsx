@@ -25,8 +25,10 @@ export function CityScreen() {
   const threshold = city.rules.critical_threshold;
   const critical = baseline.breakdown.critical_indicators;
   const weakest = new Set(baseline.breakdown.weakest_district_ids);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [openDirection, setOpenDirection] = useState<Record<string, Direction | null>>({});
+  const defaultDistrictId =
+    baseline.breakdown.weakest_district_ids[0] ?? city.districts[0]?.id ?? null;
+  const [activeId, setActiveId] = useState<string | null>(defaultDistrictId);
+  const [openedDirection, setOpenedDirection] = useState<Direction | null>(null);
 
   const problemDirections = new Map<Direction, number>();
   for (const item of critical) {
@@ -47,6 +49,11 @@ export function CityScreen() {
     () => Object.fromEntries(city.districts.map((item) => [item.id, item.name])),
     [city.districts],
   );
+
+  const selected = city.districts.find((item) => item.id === activeId) ?? null;
+  const districtCritical = selected
+    ? critical.filter((item) => item.district_id === selected.id)
+    : [];
 
   return (
     <section className="space-y-8" aria-labelledby="city-title">
@@ -91,7 +98,10 @@ export function CityScreen() {
           <p data-testid="critical-count" className="mt-3 text-3xl font-semibold">
             {baseline.breakdown.critical_count}
           </p>
-          <p className="mt-2 text-sm text-[#6c7b73]" title="Показатель критический, если его значение строго ниже 40 из 100.">
+          <p
+            className="mt-2 text-sm text-[#6c7b73]"
+            title="Показатель критический, если его значение строго ниже 40 из 100."
+          >
             Значения строго ниже {threshold}. Наведите для пояснения.
           </p>
         </article>
@@ -102,23 +112,115 @@ export function CityScreen() {
         </article>
       </div>
 
-      <DistrictMapDynamic
-        mode="health"
-        districtScores={baseline.district_scores}
-        criticalByDistrict={criticalByDistrict}
-        weakestIds={baseline.breakdown.weakest_district_ids}
-        districtNames={districtNames}
-        indicatorNames={city.indicator_names}
-        showLabels
-        activeId={activeId}
-        onSelectDistrict={(id) => {
-          setActiveId(id);
-          document.getElementById(`district-card-${id}`)?.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-          });
-        }}
-      />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(17rem,0.75fr)] lg:items-start">
+        <DistrictMapDynamic
+          mode="health"
+          districtScores={baseline.district_scores}
+          criticalByDistrict={criticalByDistrict}
+          weakestIds={baseline.breakdown.weakest_district_ids}
+          districtNames={districtNames}
+          indicatorNames={city.indicator_names}
+          showLabels
+          activeId={activeId}
+          onSelectDistrict={(id) => {
+            setActiveId(id);
+            setOpenedDirection(null);
+          }}
+        />
+
+        <aside className="lg:sticky lg:top-4">
+          {selected ? (
+            <article
+              id={`district-card-${selected.id}`}
+              data-testid={`district-card-${selected.id}`}
+              className="flex h-full flex-col rounded-2xl border border-[#174f43] bg-white p-4 ring-2 ring-[#174f43]/20"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#6c7b73]">
+                    Выбранный район
+                  </p>
+                  <h3 className="mt-1 text-xl font-semibold leading-snug">{selected.name}</h3>
+                  <p className="mt-1 text-2xl font-semibold tracking-tight">
+                    {formatScore(baseline.district_scores[selected.id] ?? 0, 2)}
+                    <span className="text-sm font-medium text-[#6c7b73]"> / 100</span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#6c7b73]">
+                    {formatNumber(selected.population_share * 100, 0)}% населения
+                  </p>
+                </div>
+                {weakest.has(selected.id) ? (
+                  <span className="shrink-0 rounded-full bg-[#fff1e8] px-2 py-0.5 text-[10px] font-semibold leading-tight text-[#8c4a29]">
+                    Слабый
+                  </span>
+                ) : null}
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-[#5c6e64]">
+                {profileById[selected.id] ?? city.disclaimer}
+              </p>
+
+              <div className="mt-4 space-y-2">
+                {DIRECTION_ORDER.map((direction) => {
+                  const avg = directionAverage(selected.metrics, direction);
+                  const hasCritical = DIRECTION_INDICATORS[direction].some(
+                    (key) => selected.metrics[key] < threshold,
+                  );
+                  const isOpen = openedDirection === direction;
+                  return (
+                    <div key={direction}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-2 rounded-xl bg-[#f4f7f4] px-3 py-2 text-left"
+                        onClick={() => setOpenedDirection(isOpen ? null : direction)}
+                      >
+                        <span className="text-sm font-semibold text-[#314740]">
+                          {DIRECTION_LABELS[direction]}
+                          {hasCritical ? " · критично" : ""}
+                        </span>
+                        <span className="text-sm font-semibold">{formatScore(avg, 1)}</span>
+                      </button>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#e2ebe4]">
+                        <div
+                          className={`h-full ${hasCritical ? "bg-[#c67848]" : "bg-[#3d8f74]"}`}
+                          style={{ width: `${Math.max(4, Math.min(100, avg))}%` }}
+                        />
+                      </div>
+                      {isOpen ? (
+                        <DirectionDetails
+                          metrics={selected.metrics}
+                          direction={direction}
+                          threshold={threshold}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4" data-testid={`critical-block-${selected.id}`}>
+                <p className="text-sm font-semibold text-[#314740]">
+                  {criticalCountLabel(districtCritical.length)}
+                  {districtCritical.length > 0 ? ` (<${threshold})` : ""}
+                </p>
+                {districtCritical.length > 0 ? (
+                  <ul className="mt-2 space-y-1 text-sm text-[#8c4a29]">
+                    {districtCritical.map((item) => (
+                      <li key={`${item.district_id}-${item.indicator}`}>
+                        {formatIndicator(item.indicator)}: {formatNumber(item.value, 0)} / 100
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </article>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#d5dcd5] bg-[#f7faf7] p-6 text-sm text-[#5c6e64]">
+              Выберите район на карте, чтобы увидеть показатели.
+            </div>
+          )}
+        </aside>
+      </div>
 
       {problemDirections.size > 0 ? (
         <div className="rounded-3xl border border-[#ead7c8] bg-[#fff8f2] p-5">
@@ -135,105 +237,6 @@ export function CityScreen() {
           </ul>
         </div>
       ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {city.districts.map((district) => {
-          const districtCritical = critical.filter((item) => item.district_id === district.id);
-          const isActive = activeId === district.id;
-          const opened = openDirection[district.id] ?? null;
-          return (
-            <article
-              key={district.id}
-              id={`district-card-${district.id}`}
-              data-testid={`district-card-${district.id}`}
-              className={`rounded-3xl border bg-white p-5 ${
-                isActive ? "border-[#174f43] ring-2 ring-[#174f43]/30" : "border-[#dce3dc]"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-semibold">{district.name}</h3>
-                  <p className="mt-1 text-2xl font-semibold tracking-tight">
-                    {formatScore(baseline.district_scores[district.id] ?? 0, 2)}
-                    <span className="text-base font-medium text-[#6c7b73]"> / 100</span>
-                  </p>
-                  <p className="mt-1 text-sm text-[#6c7b73]">
-                    {formatNumber(district.population_share * 100, 0)}% населения
-                  </p>
-                </div>
-                {weakest.has(district.id) ? (
-                  <span className="rounded-full bg-[#fff1e8] px-3 py-1 text-xs font-semibold text-[#8c4a29]">
-                    Самый слабый район
-                  </span>
-                ) : null}
-              </div>
-
-              <p className="mt-3 text-sm leading-6 text-[#5c6e64]">
-                {profileById[district.id] ?? city.disclaimer}
-              </p>
-
-              <div className="mt-4 space-y-2">
-                {DIRECTION_ORDER.map((direction) => {
-                  const avg = directionAverage(district.metrics, direction);
-                  const hasCritical = DIRECTION_INDICATORS[direction].some(
-                    (key) => district.metrics[key] < threshold,
-                  );
-                  const isOpen = opened === direction;
-                  return (
-                    <div key={direction}>
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[#f4f7f4] px-3 py-2 text-left"
-                        onClick={() =>
-                          setOpenDirection((current) => ({
-                            ...current,
-                            [district.id]: isOpen ? null : direction,
-                          }))
-                        }
-                      >
-                        <span className="text-sm font-semibold text-[#314740]">
-                          {DIRECTION_LABELS[direction]}
-                          {hasCritical ? " · критично" : ""}
-                        </span>
-                        <span className="text-sm font-semibold">{formatScore(avg, 1)}</span>
-                      </button>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#e2ebe4]">
-                        <div
-                          className={`h-full ${hasCritical ? "bg-[#c67848]" : "bg-[#3d8f74]"}`}
-                          style={{ width: `${Math.max(4, Math.min(100, avg))}%` }}
-                        />
-                      </div>
-                      {isOpen ? (
-                        <DirectionDetails
-                          metrics={district.metrics}
-                          direction={direction}
-                          threshold={threshold}
-                        />
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4" data-testid={`critical-block-${district.id}`}>
-                <p className="text-sm font-semibold text-[#314740]">
-                  {criticalCountLabel(districtCritical.length)}
-                  {districtCritical.length > 0 ? ` (<${threshold})` : ""}
-                </p>
-                {districtCritical.length > 0 ? (
-                  <ul className="mt-2 space-y-1 text-sm text-[#8c4a29]">
-                    {districtCritical.map((item) => (
-                      <li key={`${item.district_id}-${item.indicator}`}>
-                        {formatIndicator(item.indicator)}: {formatNumber(item.value, 0)} / 100
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            </article>
-          );
-        })}
-      </div>
     </section>
   );
 }
@@ -248,7 +251,7 @@ function DirectionDetails({
   threshold: number;
 }) {
   return (
-    <ul className="mt-2 space-y-1 rounded-2xl border border-[#e3eae3] bg-white px-3 py-2 text-sm">
+    <ul className="mt-2 space-y-1 rounded-xl border border-[#e3eae3] bg-white px-3 py-2 text-sm">
       {DIRECTION_INDICATORS[direction].map((indicator: Indicator) => {
         const value = metrics[indicator];
         const isCritical = value < threshold;

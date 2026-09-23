@@ -43,7 +43,7 @@ P0 handoff ≈ этапы 3–5. P1 Strong ≈ этапы 6–7 + challenge/Urba
 ### 4–5. UI
 Экраны City / Decisions / Result, счётчик `N/5`, бюджет, локальный + remote preview, Leaflet-схема районов (сверх брифа; не GIS). Пользователь проходит сценарий и видит Score из движка.
 
-**Дожать в рамках UI (не отдельный этап):** панель «Почему изменился Score?» (`breakdown_*`, `applied_interventions`, лаги, синергии), proof-строка `5/5 · 95/100 · …`, прокси `api/council/stream`.
+**Дожать в рамках UI:** выполнено — «Почему изменился Score?», proof бюджета/`N/5`, proxy `api/council/stream`, экран результата для жюри.
 
 ---
 

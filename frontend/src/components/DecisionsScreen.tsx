@@ -216,7 +216,7 @@ export function DecisionsScreen() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         {interventions.map((intervention) => {
           const selected = selectedIds.has(intervention.id);
           const decision = decisions.find((item) => item.intervention_id === intervention.id);
@@ -228,21 +228,23 @@ export function DecisionsScreen() {
             <article
               key={intervention.id}
               data-testid={`intervention-${intervention.id}`}
-              className={`rounded-3xl border p-5 ${
+              className={`flex flex-col rounded-2xl border p-3 ${
                 selected ? "border-[#174f43] bg-[#eef6f2]" : "border-[#dce3dc] bg-white"
               }`}
             >
-              <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">
+              <p className="text-[10px] font-bold uppercase leading-tight tracking-wide text-[#6c7b73]">
                 {intervention.id} · {DIRECTION_LABELS[intervention.direction]} ·{" "}
-                {intervention.scope === "city" ? "Городская мера" : "Районная мера"}
+                {intervention.scope === "city" ? "Город" : "Район"}
               </p>
-              <h3 className="mt-2 text-xl font-semibold">{intervention.name}</h3>
-              <p className="mt-3 text-sm text-[#314740]">
-                Стоимость {intervention.cost} · {formatLag(intervention.lag)}
+              <h3 className="mt-1.5 text-sm font-semibold leading-snug">{intervention.name}</h3>
+              <p className="mt-1.5 text-xs leading-snug text-[#314740]">
+                {intervention.cost} · {formatLag(intervention.lag)}
               </p>
-              <div className="mt-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6c7b73]">Влияние</p>
-                <ul className="mt-1 space-y-1 text-sm text-[#5c6e64]">
+              <div className="mt-2 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#6c7b73]">
+                  Влияние
+                </p>
+                <ul className="mt-1 space-y-0.5 text-xs leading-snug text-[#5c6e64]">
                   {(Object.entries(intervention.effects) as [Indicator, number][]).map(
                     ([key, value]) => (
                       <li key={key}>
@@ -258,11 +260,11 @@ export function DecisionsScreen() {
               </div>
 
               {needsDistrict ? (
-                <label className="mt-4 block text-sm text-[#5c6e64]">
+                <label className="mt-2 block text-xs text-[#5c6e64]">
                   Район
                   <select
                     data-testid={`district-select-${intervention.id}`}
-                    className="mt-2 w-full rounded-xl border border-[#d5dcd5] bg-white px-3 py-2 text-sm text-[#192e2a]"
+                    className="mt-1 w-full rounded-lg border border-[#d5dcd5] bg-white px-2 py-1.5 text-xs text-[#192e2a]"
                     value={decision?.district_id || draftDistrict}
                     onChange={(event) => {
                       const value = event.target.value;
@@ -282,7 +284,7 @@ export function DecisionsScreen() {
                   </select>
                 </label>
               ) : (
-                <p className="mt-4 text-sm font-medium text-[#417463]">Весь город</p>
+                <p className="mt-2 text-xs font-medium text-[#417463]">Весь город</p>
               )}
 
               <button
@@ -290,7 +292,7 @@ export function DecisionsScreen() {
                 data-testid={`toggle-${intervention.id}`}
                 disabled={!canSelect}
                 onClick={() => onToggle(intervention.id)}
-                className={`mt-4 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-40 ${
+                className={`mt-2 w-full rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${
                   selected
                     ? "bg-white text-[#174f43] ring-1 ring-[#174f43]"
                     : "bg-[#174f43] text-white"
