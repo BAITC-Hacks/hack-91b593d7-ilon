@@ -6,7 +6,7 @@ test("оспорить план: пример → simulate → challenge M5→M3
   await page.goto("/");
   await expect(page.getByRole("status")).toHaveText("Сервер подключён");
 
-  await page.getByRole("button", { name: "Перейти к решениям" }).click();
+  await page.getByRole("button", { name: "Принять управленческие решения" }).click();
   await page.getByRole("button", { name: "Пример сценария" }).click();
   await expect(page.getByTestId("decision-count")).toHaveText("5 из 5");
 
@@ -25,4 +25,7 @@ test("оспорить план: пример → simulate → challenge M5→M3
   await expect(page.getByTestId("challenge-score-pair")).toContainText("56");
   await expect(page.getByTestId("challenge-score-pair")).toContainText("57");
   await expect(page.getByTestId("challenge-losses")).toBeVisible();
+  await expect(page.getByTestId("compare-panel")).toBeVisible();
+  await expect(page.getByTestId("compare-score")).toContainText("56");
+  await expect(page.getByTestId("compare-score")).toContainText("57");
 });

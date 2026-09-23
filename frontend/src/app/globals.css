@@ -25,3 +25,22 @@ button:focus-visible, a:focus-visible {
 }
 
 ::selection { background: #b8e1d1; }
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .print\:hidden,
+  [data-testid="district-map"],
+  [data-testid="council-panel"],
+  nav,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  [data-print-root] {
+    max-width: none !important;
+  }
+}

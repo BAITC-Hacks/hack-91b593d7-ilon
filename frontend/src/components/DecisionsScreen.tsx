@@ -3,9 +3,15 @@
 import { useMemo, useState } from "react";
 import { useSimulator } from "@/components/SimulatorProvider";
 import { DistrictMapDynamic } from "@/components/DistrictMapDynamic";
-import { DIRECTION_LABELS, DIRECTION_ORDER } from "@/lib/labels";
+import {
+  DIRECTION_LABELS,
+  DIRECTION_ORDER,
+  formatIndicator,
+  formatLag,
+  formatNumber,
+} from "@/lib/labels";
 import { selectedDistrictIds } from "@/lib/mapStyles";
-import type { CriticalIndicator, Direction } from "@/lib/contracts";
+import type { CriticalIndicator, Direction, Indicator } from "@/lib/contracts";
 
 export function DecisionsScreen() {
   const {
@@ -54,6 +60,8 @@ export function DecisionsScreen() {
   );
 
   const preview = previewSource === "remote" && remotePreview ? remotePreview : localPreview;
+  const remainingSlots = Math.max(0, catalog.city.rules.decisions_count - decisions.length);
+  const budgetRatio = Math.min(100, Math.max(0, (preview.spent / preview.budget) * 100));
 
   function onToggle(interventionId: string) {
     const intervention = catalog.city.interventions.find((item) => item.id === interventionId);
@@ -66,9 +74,7 @@ export function DecisionsScreen() {
     }
 
     const districtId =
-      intervention.scope === "district"
-        ? districtDraft[interventionId] || catalog.city.districts[0]?.id || null
-        : null;
+      intervention.scope === "district" ? districtDraft[interventionId] || null : null;
 
     if (intervention.scope === "district" && !districtId) {
       setActionError("Выберите район для этой меры");
@@ -85,10 +91,11 @@ export function DecisionsScreen() {
         <div>
           <p className="mb-2 text-xs font-bold tracking-[0.18em] text-[#417463]">ЭКРАН 02 / РЕШЕНИЯ</p>
           <h2 id="decisions-title" className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Выберите пять инициатив
+            Сформируйте план развития
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5c6e64] sm:text-base">
-            Цены фиксированы. Для районных мер укажите район. Не больше двух мер одного направления.
+            Выберите ровно 5 инициатив, не превышая бюджет {catalog.city.budget}. Не более двух
+            инициатив одного направления.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -113,37 +120,54 @@ export function DecisionsScreen() {
             onClick={() => void runSimulation()}
             className="rounded-xl bg-[#174f43] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#236957] disabled:opacity-50"
           >
-            {simulating ? "Считаем…" : "Рассчитать"}
+            {simulating ? "Считаем…" : localPreview.complete ? "Рассчитать сценарий" : "Нужно 5 решений"}
           </button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <article className="rounded-3xl border border-[#dce3dc] bg-white p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Выбрано</p>
-          <p data-testid="decision-count" className="mt-3 text-3xl font-semibold">
-            {decisions.length} из {catalog.city.rules.decisions_count}
+      <div
+        data-testid="decision-status"
+        className="sticky top-0 z-20 grid gap-4 rounded-3xl border border-[#d5dcd5] bg-[#f7faf7]/95 p-4 shadow-sm backdrop-blur sm:grid-cols-3"
+      >
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Бюджет</p>
+          <p data-testid="spent" className="mt-2 text-2xl font-semibold">
+            {preview.spent} / {preview.budget}
           </p>
-        </article>
-        <article className="rounded-3xl border border-[#dce3dc] bg-white p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Расходы</p>
-          <p data-testid="spent" className="mt-3 text-3xl font-semibold">
-            {preview.spent}
+          <p data-testid="remaining" className="mt-1 text-sm text-[#5c6e64]">
+            Осталось {preview.remaining}
           </p>
-          <p className="mt-2 text-sm text-[#6c7b73]">из {preview.budget}</p>
-        </article>
-        <article className="rounded-3xl border border-[#dce3dc] bg-white p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Остаток</p>
-          <p
-            data-testid="remaining"
-            className={`mt-3 text-3xl font-semibold ${preview.remaining < 0 ? "text-[#8c4a29]" : ""}`}
-          >
-            {preview.remaining}
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#dde6df]">
+            <div
+              className={`h-full ${preview.remaining < 0 ? "bg-[#c67848]" : "bg-[#174f43]"}`}
+              style={{ width: `${budgetRatio}%` }}
+            />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Решения</p>
+          <p data-testid="decision-count" className="mt-2 text-2xl font-semibold">
+            {decisions.length} / {catalog.city.rules.decisions_count}
           </p>
-          <p className="mt-2 text-sm text-[#6c7b73]">
-            {previewSource === "remote" ? "Проверка сервером" : "Локальная проверка"}
+          <p className="mt-1 text-sm text-[#5c6e64]">
+            {remainingSlots > 0
+              ? `Осталось выбрать ${remainingSlots}`
+              : localPreview.complete
+                ? "Готов к проверке"
+                : "Исправьте ограничения"}
           </p>
-        </article>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Проверка</p>
+          <p className="mt-2 text-sm font-semibold text-[#314740]" data-testid="progress-label">
+            {previewSource === "remote" ? "Сервер" : "Локально"} · {decisions.length} из 5
+          </p>
+          <p className="mt-1 text-sm text-[#5c6e64]">
+            {localPreview.complete
+              ? "Можно рассчитать сценарий"
+              : "Итоговый Score только после 5 допустимых решений"}
+          </p>
+        </div>
       </div>
 
       {(actionError || simulateError || preview.errors.length > 0) && (
@@ -161,6 +185,7 @@ export function DecisionsScreen() {
         selectedIds={highlightedDistricts}
         districtNames={districtNames}
         indicatorNames={catalog.city.indicator_names}
+        showLabels
         activeId={activeId}
         onSelectDistrict={setActiveId}
       />
@@ -195,67 +220,60 @@ export function DecisionsScreen() {
         {interventions.map((intervention) => {
           const selected = selectedIds.has(intervention.id);
           const decision = decisions.find((item) => item.intervention_id === intervention.id);
-          const effects = Object.entries(intervention.effects)
-            .map(([key, value]) => `${key} ${value! > 0 ? "+" : ""}${value}`)
-            .join(", ");
+          const draftDistrict = districtDraft[intervention.id] || "";
+          const needsDistrict = intervention.scope === "district";
+          const canSelect = selected || !needsDistrict || Boolean(draftDistrict);
 
           return (
             <article
               key={intervention.id}
               data-testid={`intervention-${intervention.id}`}
               className={`rounded-3xl border p-5 ${
-                selected
-                  ? "border-[#174f43] bg-[#eef6f2]"
-                  : "border-[#dce3dc] bg-white"
+                selected ? "border-[#174f43] bg-[#eef6f2]" : "border-[#dce3dc] bg-white"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">
-                    {intervention.id} · {DIRECTION_LABELS[intervention.direction]}
-                  </p>
-                  <h3 className="mt-2 text-xl font-semibold">{intervention.name}</h3>
-                  <p className="mt-2 text-sm text-[#5c6e64]">
-                    {intervention.scope === "city" ? "Городская мера" : "Районная мера"} · стоимость{" "}
-                    {intervention.cost} · лаг {intervention.lag}
-                  </p>
-                  <p className="mt-2 text-sm text-[#6c7b73]">{effects}</p>
-                </div>
-                <button
-                  type="button"
-                  data-testid={`toggle-${intervention.id}`}
-                  onClick={() => onToggle(intervention.id)}
-                  className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ${
-                    selected
-                      ? "bg-white text-[#174f43] ring-1 ring-[#174f43]"
-                      : "bg-[#174f43] text-white"
-                  }`}
-                >
-                  {selected ? "Убрать" : "Выбрать"}
-                </button>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">
+                {intervention.id} · {DIRECTION_LABELS[intervention.direction]} ·{" "}
+                {intervention.scope === "city" ? "Городская мера" : "Районная мера"}
+              </p>
+              <h3 className="mt-2 text-xl font-semibold">{intervention.name}</h3>
+              <p className="mt-3 text-sm text-[#314740]">
+                Стоимость {intervention.cost} · {formatLag(intervention.lag)}
+              </p>
+              <div className="mt-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6c7b73]">Влияние</p>
+                <ul className="mt-1 space-y-1 text-sm text-[#5c6e64]">
+                  {(Object.entries(intervention.effects) as [Indicator, number][]).map(
+                    ([key, value]) => (
+                      <li key={key}>
+                        {formatIndicator(key)}{" "}
+                        <span className="font-semibold text-[#174f43]">
+                          {value > 0 ? "+" : ""}
+                          {formatNumber(value, 2)}
+                        </span>
+                      </li>
+                    ),
+                  )}
+                </ul>
               </div>
 
-              {intervention.scope === "district" ? (
+              {needsDistrict ? (
                 <label className="mt-4 block text-sm text-[#5c6e64]">
                   Район
                   <select
                     data-testid={`district-select-${intervention.id}`}
                     className="mt-2 w-full rounded-xl border border-[#d5dcd5] bg-white px-3 py-2 text-sm text-[#192e2a]"
-                    value={
-                      decision?.district_id ||
-                      districtDraft[intervention.id] ||
-                      catalog.city.districts[0]?.id ||
-                      ""
-                    }
+                    value={decision?.district_id || draftDistrict}
                     onChange={(event) => {
                       const value = event.target.value;
                       setDistrictDraft((current) => ({ ...current, [intervention.id]: value }));
-                      if (selected) {
+                      if (selected && value) {
                         const message = selectIntervention(intervention.id, value);
                         setActionError(message);
                       }
                     }}
                   >
+                    <option value="">Выберите район</option>
                     {catalog.city.districts.map((district) => (
                       <option key={district.id} value={district.id}>
                         {district.name}
@@ -263,7 +281,23 @@ export function DecisionsScreen() {
                     ))}
                   </select>
                 </label>
-              ) : null}
+              ) : (
+                <p className="mt-4 text-sm font-medium text-[#417463]">Весь город</p>
+              )}
+
+              <button
+                type="button"
+                data-testid={`toggle-${intervention.id}`}
+                disabled={!canSelect}
+                onClick={() => onToggle(intervention.id)}
+                className={`mt-4 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-40 ${
+                  selected
+                    ? "bg-white text-[#174f43] ring-1 ring-[#174f43]"
+                    : "bg-[#174f43] text-white"
+                }`}
+              >
+                {selected ? "Убрать" : "Выбрать"}
+              </button>
             </article>
           );
         })}
@@ -288,11 +322,6 @@ export function DecisionsScreen() {
           </ul>
         </div>
       ) : null}
-
-      <p className="text-sm text-[#6c7b73]">
-        Счётчик: <span data-testid="progress-label">{decisions.length} из 5</span>
-        {preview.complete ? " · сценарий готов к расчёту" : null}
-      </p>
     </section>
   );
 }

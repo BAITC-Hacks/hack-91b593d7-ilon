@@ -1,7 +1,11 @@
 import "server-only";
 
 type BackendGetPath = "/health" | "/api/v1/catalog";
-type BackendPostPath = "/api/v1/preview" | "/api/v1/simulate" | "/api/v1/challenge";
+type BackendPostPath =
+  | "/api/v1/preview"
+  | "/api/v1/simulate"
+  | "/api/v1/challenge"
+  | "/api/v1/shapley";
 
 function baseUrl() {
   return process.env.API_INTERNAL_URL || "http://127.0.0.1:8000";

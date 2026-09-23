@@ -86,6 +86,7 @@ export interface CityData {
     critical_threshold: number;
   };
   indicator_names: Record<Indicator, string>;
+  weights: Record<Indicator, number>;
   districts: District[];
   interventions: Intervention[];
   synergies: Synergy[];
@@ -120,6 +121,15 @@ export interface AppliedSynergy {
   effects: Partial<Record<Indicator, number>>;
 }
 
+export interface AppliedIntervention {
+  intervention_id: string;
+  district_ids: string[];
+  cost: number;
+  lag: number;
+  realized_fraction: number;
+  effects: Partial<Record<Indicator, number>>;
+}
+
 export interface Simulation {
   scenario_id: string;
   dataset_version: string;
@@ -136,6 +146,7 @@ export interface Simulation {
   breakdown_after: ScoreBreakdown;
   districts: DistrictResult[];
   decisions: Decision[];
+  applied_interventions?: AppliedIntervention[];
   applied_synergies: AppliedSynergy[];
   warnings: string[];
 }
@@ -228,4 +239,31 @@ export interface ChallengeResponse {
   replacement: ChallengeReplacement | null;
   metric_losses: ChallengeMetricLoss[];
   question: string;
+}
+
+export interface ShapleyContribution {
+  intervention_id: string;
+  district_id?: string | null;
+  value: number;
+}
+
+export interface ShapleyResponse {
+  scenario_id: string;
+  score_before: number;
+  score_after: number;
+  score_delta: number;
+  contributions: ShapleyContribution[];
+  sum_contributions: number;
+}
+
+export interface HistoryEntry {
+  id: string;
+  team: string;
+  timestamp: string;
+  decisions: Decision[];
+  score_after: number;
+  score_before: number;
+  spent: number;
+  scenario_id: string;
+  simulation: Simulation;
 }

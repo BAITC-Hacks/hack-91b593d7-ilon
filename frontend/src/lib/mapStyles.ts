@@ -14,10 +14,12 @@ export interface DistrictMapProps {
   activeId?: string | null;
   onSelectDistrict?: (id: string) => void;
   compact?: boolean;
+  showLabels?: boolean;
 }
 
 export function fillForHealth(args: {
   id: string;
+  score: number;
   hasCritical: boolean;
   isWeakest: boolean;
   isActive: boolean;
@@ -25,8 +27,9 @@ export function fillForHealth(args: {
 }): string {
   if (args.isActive) return "#174f43";
   if (args.isSelected) return "#3d8f74";
-  if (args.isWeakest || args.hasCritical) return "#c67848";
-  return "#7fa896";
+  if (args.score >= 58) return "#5fad8a";
+  if (args.score >= 52) return "#c4b15a";
+  return "#c67848";
 }
 
 export function fillForDelta(delta: number, isActive: boolean): string {

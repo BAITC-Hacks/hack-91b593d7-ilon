@@ -20,6 +20,27 @@ export function AppHeader({ eyebrow }: { eyebrow?: string }) {
   );
 }
 
+const STEP_META = [
+  {
+    id: "city" as const,
+    short: "Город",
+    title: "Изучите город",
+    hint: "Исходное состояние",
+  },
+  {
+    id: "decisions" as const,
+    short: "Решения",
+    title: "Примите 5 решений",
+    hint: "Бюджет и инициативы",
+  },
+  {
+    id: "result" as const,
+    short: "Результат",
+    title: "Посмотрите последствия",
+    hint: "Score и объяснение",
+  },
+];
+
 export function StepNav({
   step,
   onSelect,
@@ -27,28 +48,36 @@ export function StepNav({
   step: "city" | "decisions" | "result";
   onSelect: (step: "city" | "decisions" | "result") => void;
 }) {
-  const items = [
-    { id: "city" as const, label: "Город" },
-    { id: "decisions" as const, label: "Решения" },
-    { id: "result" as const, label: "Результат" },
-  ];
+  const currentIndex = STEP_META.findIndex((item) => item.id === step);
 
   return (
-    <nav aria-label="Этапы симулятора" className="flex flex-wrap gap-2">
-      {items.map((item, index) => {
+    <nav aria-label="Этапы симулятора" className="grid gap-2 sm:grid-cols-3">
+      {STEP_META.map((item, index) => {
         const active = item.id === step;
+        const completed = index < currentIndex;
         return (
           <button
             key={item.id}
             type="button"
             onClick={() => onSelect(item.id)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+            aria-current={active ? "step" : undefined}
+            className={`rounded-2xl px-4 py-3 text-left transition-colors ${
               active
                 ? "bg-[#174f43] text-white"
-                : "bg-white text-[#5c6e64] ring-1 ring-[#d5dcd5] hover:bg-[#eef3ef]"
+                : completed
+                  ? "bg-[#e7f2ec] text-[#174f43] ring-1 ring-[#c5d9cf]"
+                  : "bg-white text-[#5c6e64] ring-1 ring-[#d5dcd5] hover:bg-[#eef3ef]"
             }`}
           >
-            {index + 1}. {item.label}
+            <p className="text-xs font-bold tracking-wide">
+              {completed ? "Готово" : `${index + 1}`} · {item.short}
+            </p>
+            <p className={`mt-1 text-sm font-semibold ${active ? "text-white" : ""}`}>
+              {item.title}
+            </p>
+            <p className={`mt-1 text-xs ${active ? "text-white/80" : "text-[#6c7b73]"}`}>
+              {item.hint}
+            </p>
           </button>
         );
       })}

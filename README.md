@@ -28,7 +28,7 @@ AI и демонстрационный совет получают готовы�
 2. **Решения** — карточки мер с фиксированными ценами, выбор района, счётчик `N/5`, бюджет, локальная и серверная проверка (`preview`).
 3. **Результат** — Score до/после, районы, синергии, риски; кнопка **«Оспорить мой план»** (`challenge`).
 
-Слот AI-совета экспертов (стрим `council`) подключается этапом 6; backend-маршрут уже есть.
+Слот AI-совета экспертов (стрим `council`) подключён на экране результата. Дополнительно (этап 9): сравнение сценариев, Шепли, экспорт Markdown/PDF, учебные события и история команды — без изменения официальной формулы Score.
 
 Скрипт защиты 3–5 минут: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). После merge AI-совета: [docs/STAGE8_PART_B_CHECKLIST.md](docs/STAGE8_PART_B_CHECKLIST.md). План этапов: [docs/ROADMAP.md](docs/ROADMAP.md). Финальный бриф: [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md).
 
@@ -89,9 +89,10 @@ Backend (подробности в [backend/README.md](backend/README.md)):
 | `POST` | `/api/v1/preview` | 0…5 решений, бюджет и ошибки |
 | `POST` | `/api/v1/simulate` | Ровно 5 допустимых → полный Score |
 | `POST` | `/api/v1/challenge` | Одна лучшая допустимая замена |
+| `POST` | `/api/v1/shapley` | Вклады пяти мер (Шепли) |
 | `POST` | `/api/v1/council/stream` | NDJSON-совет экспертов |
 
-Frontend ходит на backend только через same-origin proxies: `/api/health`, `/api/catalog`, `/api/preview`, `/api/simulate`, `/api/challenge` (и `/api/council/stream` после этапа 6). Произвольный upstream URL не допускается. Если backend недоступен, страница показывает ошибку и кнопку повтора; Score не подменяется моками.
+Frontend ходит на backend только через same-origin proxies: `/api/health`, `/api/catalog`, `/api/preview`, `/api/simulate`, `/api/challenge`, `/api/shapley`, `/api/council/stream`. Произвольный upstream URL не допускается. Если backend недоступен, страница показывает ошибку и кнопку повтора; Score не подменяется моками.
 
 Пример контрольного расчёта:
 

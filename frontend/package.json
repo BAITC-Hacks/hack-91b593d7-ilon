@@ -11,6 +11,7 @@
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "next typegen && tsc --noEmit",
+    "test:report": "node --experimental-strip-types scripts/check-report.mts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

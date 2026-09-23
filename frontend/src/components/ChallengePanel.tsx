@@ -34,7 +34,11 @@ function decisionLabel(
   return `${decision.intervention_id} · ${name} · ${place}`;
 }
 
-export function ChallengePanel() {
+export function ChallengePanel({
+  onResult,
+}: {
+  onResult?: (result: ChallengeResponse | null) => void;
+}) {
   const { catalog, simulation, decisions } = useSimulator();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +60,12 @@ export function ChallengePanel() {
     setLoading(false);
     if (!response.ok) {
       setResult(null);
+      onResult?.(null);
       setError(response.message);
       return;
     }
     setResult(response.data);
+    onResult?.(response.data);
   }
 
   return (
@@ -128,8 +134,8 @@ export function ChallengePanel() {
                 <article className="rounded-2xl border border-[#e3eae3] p-4">
                   <p className="text-xs font-bold uppercase tracking-widest text-[#6c7b73]">Score</p>
                   <p className="mt-2 text-lg font-semibold" data-testid="challenge-score-pair">
-                    {formatScore(result.original.score_after, 5)} →{" "}
-                    {formatScore(result.alternative.score_after, 5)}
+                    {formatScore(result.original.score_after, 2)} →{" "}
+                    {formatScore(result.alternative.score_after, 2)}
                   </p>
                 </article>
                 <article className="rounded-2xl border border-[#e3eae3] p-4">

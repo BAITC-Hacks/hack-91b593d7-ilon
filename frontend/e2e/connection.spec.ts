@@ -48,7 +48,7 @@ test("узкий экран сохраняет доступность прове
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
   await expect(page.getByRole("status")).toHaveText("Сервер подключён");
-  await expect(page.getByRole("button", { name: "Перейти к решениям" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Принять управленческие решения" })).toBeVisible();
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
   ).toBeTruthy();

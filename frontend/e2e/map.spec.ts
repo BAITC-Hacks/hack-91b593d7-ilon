@@ -7,4 +7,6 @@ test("карта районов загружается и показывает �
   await page.getByTestId("map-select-nura").click();
   await expect(page.getByTestId("map-active-district")).toContainText("Нура");
   await expect(page.getByTestId("district-card-nura")).toBeVisible();
+  await expect(page.getByTestId("critical-block-nura")).toContainText("критических");
+  await expect(page.getByTestId("critical-block-nura")).not.toHaveText("Критических показателей нет");
 });

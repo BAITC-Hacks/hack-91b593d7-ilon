@@ -1,21 +1,12 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import {
-  GeoJSON,
-  MapContainer,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
+import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
 import type { Feature, FeatureCollection } from "geojson";
 import type { Layer, Path, PathOptions } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { formatScore } from "@/lib/labels";
-import {
-  fillForDelta,
-  fillForHealth,
-  type DistrictMapProps,
-} from "@/lib/mapStyles";
+import { fillForDelta, fillForHealth, type DistrictMapProps } from "@/lib/mapStyles";
 import rawGeojson from "@/data/astana-districts.json";
 
 const geojson = rawGeojson as FeatureCollection;
@@ -62,8 +53,6 @@ function DistrictMapInner(props: DistrictMapProps) {
     return map;
   }, [districtResults]);
 
-  const data = geojson;
-
   function styleFor(id: string): PathOptions {
     const isActive = activeId === id;
     const isSelected = selected.has(id);
@@ -80,6 +69,7 @@ function DistrictMapInner(props: DistrictMapProps) {
       weight: isActive || isSelected ? 3 : 1.5,
       fillColor: fillForHealth({
         id,
+        score: districtScores[id] ?? 0,
         hasCritical: (criticalByDistrict[id] ?? []).length > 0,
         isWeakest: weakest.has(id),
         isActive,
@@ -154,7 +144,7 @@ function DistrictMapInner(props: DistrictMapProps) {
         />
         <GeoJSON
           key={`${mode}-${activeId ?? ""}-${selectedIds.join(",")}-${districtResults.length}`}
-          data={data}
+          data={geojson}
           onEachFeature={(feature, layer) => onEachFeature(feature, layer)}
         />
       </MapContainer>
@@ -163,42 +153,60 @@ function DistrictMapInner(props: DistrictMapProps) {
 }
 
 export function DistrictMap(props: DistrictMapProps) {
-  const legend =
-    props.mode === "delta" ? (
-      <p className="mt-3 text-xs text-[#6c7b73]">
-        Зелёный — рост оценки района, терракотовый — снижение. Клик открывает данные района.
-      </p>
-    ) : props.mode === "selection" ? (
-      <p className="mt-3 text-xs text-[#6c7b73]">
-        Ярче выделены районы из выбранных мер. Городские меры не привязаны к полигону.
-      </p>
-    ) : (
-      <p className="mt-3 text-xs text-[#6c7b73]">
-        Терракотовый — слабейший район или есть показатели ниже порога. Клик показывает детали.
-      </p>
-    );
+  const showLabels = props.showLabels ?? true;
 
   return (
     <div>
       <DistrictMapInner {...props} />
       <div className="mt-3 flex flex-wrap gap-2" aria-label="Районы на карте">
-        {Object.entries(props.districtNames).map(([id, name]) => (
-          <button
-            key={id}
-            type="button"
-            data-testid={`map-select-${id}`}
-            onClick={() => props.onSelectDistrict?.(id)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              props.activeId === id
-                ? "bg-[#174f43] text-white"
-                : "bg-white text-[#5c6e64] ring-1 ring-[#d5dcd5]"
-            }`}
-          >
-            {name}
-          </button>
-        ))}
+        {Object.entries(props.districtNames).map(([id, name]) => {
+          const score = props.districtScores[id];
+          const criticalCount = (props.criticalByDistrict[id] ?? []).length;
+          const delta =
+            props.mode === "delta"
+              ? props.districtResults?.find((row) => row.id === id)
+              : undefined;
+          const deltaValue = delta ? delta.score_after - delta.score_before : undefined;
+          return (
+            <button
+              key={id}
+              type="button"
+              data-testid={`map-select-${id}`}
+              onClick={() => props.onSelectDistrict?.(id)}
+              className={`rounded-2xl px-3 py-2 text-left text-xs font-semibold ${
+                props.activeId === id
+                  ? "bg-[#174f43] text-white"
+                  : "bg-white text-[#5c6e64] ring-1 ring-[#d5dcd5]"
+              }`}
+            >
+              <span className="block">{name}</span>
+              {showLabels && score !== undefined ? (
+                <span className="mt-0.5 block font-medium opacity-90">
+                  {props.mode === "delta" && deltaValue !== undefined
+                    ? `${deltaValue >= 0 ? "+" : ""}${formatScore(deltaValue, 2)}`
+                    : formatScore(score, 2)}
+                  {props.mode !== "delta" && criticalCount > 0
+                    ? ` · ${criticalCount} крит.`
+                    : ""}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
-      {legend}
+      {props.mode === "delta" ? (
+        <div className="mt-3 space-y-1 text-xs text-[#6c7b73]">
+          <p>Цвет полигона — изменение оценки района: рост / без существенных изменений / снижение.</p>
+          <p>Метка на кнопке показывает дельту Score района, не абсолютный уровень.</p>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-1 text-xs text-[#6c7b73]">
+          <p>Цвет полигона — уровень районного Score (высокий / средний / слабый).</p>
+          <p>
+            Отдельно: подпись «N крит.» означает показатели строго ниже 40 внутри района.
+          </p>
+        </div>
+      )}
       {props.activeId ? (
         <p className="mt-2 text-sm font-semibold text-[#174f43]" data-testid="map-active-district">
           Выбран на карте: {props.districtNames[props.activeId] ?? props.activeId}

@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function openExampleResult(page: Page) {
   await page.goto("/");
   await expect(page.getByRole("status")).toHaveText("Сервер подключён");
-  await page.getByRole("button", { name: "Перейти к решениям" }).click();
+  await page.getByRole("button", { name: "Принять управленческие решения" }).click();
   await page.getByRole("button", { name: "Пример сценария" }).click();
   await page.getByTestId("run-simulate").click();
   await expect(page.getByTestId("score-after")).toBeVisible({ timeout: 20_000 });

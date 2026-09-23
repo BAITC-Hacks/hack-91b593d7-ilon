@@ -1,0 +1,16 @@
+[
+  {
+    "id": "heatwave-nura",
+    "title": "Учебная жара в Нуре",
+    "district_id": "nura",
+    "effects": { "E1": -4, "S2": -3 },
+    "disclaimer": "Учебное допущение, не часть официальной формулы Score."
+  },
+  {
+    "id": "service-surge-city",
+    "title": "Учебный всплеск нагрузки на сервисы",
+    "district_id": null,
+    "effects": { "C2": -2.5 },
+    "disclaimer": "Учебное допущение, не часть официальной формулы Score."
+  }
+]

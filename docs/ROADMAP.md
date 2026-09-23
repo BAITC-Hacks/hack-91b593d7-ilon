@@ -14,9 +14,9 @@
 | 2 | Датасет и движок | **Готово** | `backend/data/city.v2.json`, `backend/app/engine.py`, `validation` в engine/preview |
 | 3 | API для интерфейса | **Готово** | `catalog`, `preview`, `simulate`, `council/stream` |
 | 4–5 | UI: город / решения / результат | **Готово (MVP)** | `frontend/src/components/*`, proxies `api/preview`, `api/simulate` |
-| 6–7 | AI-совет + инструмент замен | **6 → Codex** · **7 → готово** | council UI / `challenge.py` |
-| 8 | Проверка MVP и защита | **Часть A готова** · Part B ждёт Codex | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) |
-| 9 | Доп. баллы | **Не начинать** до закрытия 6–8 | — |
+| 6–7 | AI-совет + инструмент замен | **Готово** | council UI / `challenge.py` |
+| 8 | Проверка MVP и защита | **Готово** | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) |
+| 9 | Доп. баллы | **Готово (9.1–9.5)** | compare, shapley, export, events, history |
 
 P0 handoff ≈ этапы 3–5. P1 Strong ≈ этапы 6–7 + challenge/UrbanLens. P2 handoff ⊂ этап 9.
 
@@ -128,19 +128,19 @@ P0 handoff ≈ этапы 3–5. P1 Strong ≈ этапы 6–7 + challenge/Urba
 
 ---
 
-### Этап 9 — Дополнительные баллы (строго по порядку)
+### Этап 9 — Дополнительные баллы
 
-Начинать **только** после закрытия этапов 6–8 и стабильного демо.
+**Статус:** готово (9.1–9.5).
 
-| Порядок | Возможность | Где / как | Риск |
-| ---: | --- | --- | --- |
-| 9.1 | Сравнение двух сценариев | FE: side-by-side двух `Simulation` (свой + challenge или сохранённый слот); BE при необходимости `POST /api/v1/compare` = два вызова simulate | низкий — почти UI |
-| 9.2 | Шепли по мерам | `backend/app/shapley.py`: перебор коалиций 5 мер тем же engine (синергии/штрафы внутри); FE таблица вкладов; явно «вклад в модельный Score» | средний — дорого по CPU, нужна кнопка/кэш |
-| 9.3 | Экспорт Markdown/PDF | FE: собрать Markdown из Simulation + council; PDF через простой print/HTML или лёгкую lib | низкий |
-| 9.4 | Неожиданные события | Отдельный JSON правил, **не** вшитый в Score без явной метки; отдельный режим UI | высокий — путаница с официальной формулой |
-| 9.5 | Команды и история | LocalStorage / лёгкий файл; без полноценной БД до необходимости | средний — scope creep |
+| # | Возможность | Где |
+| ---: | --- | --- |
+| 9.1 | Сравнение | `ComparePanel` после challenge / истории |
+| 9.2 | Шепли | `POST /api/v1/shapley`, `ShapleyPanel` |
+| 9.3 | Экспорт | Markdown + печать/PDF (`ExportBar`) |
+| 9.4 | События | `events.json` + учебный overlay, официальный Score не меняется |
+| 9.5 | История | `localStorage`, сравнение с прошлым прогоном |
 
-**Не делать в этапе 9:** Monte Carlo, live RAG, глобальный оптимизатор, поквартальный «точный» прогноз, БД ради БД.
+Официальная формула и `simulate` не изменены. Shapley/events только по действию пользователя.
 
 ---
 

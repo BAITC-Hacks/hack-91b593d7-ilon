@@ -195,6 +195,12 @@ export function SimulatorProvider({
     }
     setSimulation(result.data);
     setStep("result");
+    try {
+      const { pushHistory, readTeamName } = await import("@/lib/history");
+      pushHistory(readTeamName(), result.data);
+    } catch {
+      // history is best-effort and must not block the official Score path
+    }
   }, [decisions, localPreview.complete]);
 
   const value = useMemo<SimulatorContextValue>(

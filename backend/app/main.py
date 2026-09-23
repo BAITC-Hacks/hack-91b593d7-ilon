@@ -18,8 +18,10 @@ from app.schemas import (
     PreviewResponse,
     PreviewScenario,
     Scenario,
+    ShapleyResponse,
     Simulation,
 )
+from app.shapley import shapley
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -61,6 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "/api/v1/preview",
             "/api/v1/simulate",
             "/api/v1/challenge",
+            "/api/v1/shapley",
             "/api/v1/council/stream",
         }:
             return await request_validation_exception_handler(request, exc)
@@ -108,6 +111,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/v1/challenge", response_model=ChallengeResponse)
     def evaluate_challenge(scenario: Scenario):
         return challenge(city, scenario)
+
+    @app.post("/api/v1/shapley", response_model=ShapleyResponse)
+    def evaluate_shapley(scenario: Scenario):
+        return shapley(city, scenario)
 
     @app.post("/api/v1/council/stream", response_class=StreamingResponse)
     async def council(scenario: Scenario, request: Request):

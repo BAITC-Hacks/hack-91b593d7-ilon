@@ -322,3 +322,18 @@ class ChallengeResponse(StrictModel):
     replacement: ChallengeReplacement | None
     metric_losses: list[ChallengeMetricLoss]
     question: str
+
+
+class ShapleyContribution(StrictModel):
+    intervention_id: str
+    district_id: str | None
+    value: Number
+
+
+class ShapleyResponse(StrictModel):
+    scenario_id: str
+    score_before: Number
+    score_after: Number
+    score_delta: Number
+    contributions: list[ShapleyContribution]
+    sum_contributions: Number
